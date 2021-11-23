@@ -5,10 +5,8 @@
  * @license see 'LICENSE' file
  *
  * references:
- *   - (FUH 2021) "Effiziente Algorithmen" (2021), Kurs 1684, Fernuni Hagen
- *                (https://vu.fernuni-hagen.de/lvuweb/lvu/app/Kurs/01684).
- *   - (Erickson 2019) "Algorithms" (2019), ISBN: 978-1-792-64483-2
- *                (http://jeffe.cs.illinois.edu/teaching/algorithms/).
+ * 	- (FUH 2021): A. Schulz and J. Rollin, "Effiziente Algorithmen", Kurs 1684 (2021), Fernuni Hagen (https://vu.fernuni-hagen.de/lvuweb/lvu/app/Kurs/01684).
+ * 	- (Erickson 2019): J. Erickson, "Algorithms" (2019), ISBN: 978-1-792-64483-2 (http://jeffe.cs.illinois.edu/teaching/algorithms/).
  */
 
 #ifndef __GRAPH_ALGOS_H__
