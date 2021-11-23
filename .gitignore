@@ -6,8 +6,10 @@
 *.lo
 *.o
 *.obj
+*.class
+*.pcm
 
-# Precompiled Headers
+# Precompiled headers
 *.gch
 *.pch
 
@@ -15,10 +17,6 @@
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai
@@ -30,3 +28,6 @@
 *.exe
 *.out
 *.app
+
+# CMake files
+build/**
