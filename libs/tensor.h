@@ -3,6 +3,10 @@
  * @author Tobias Weber (ident: 486fbae61c79af61ae9217361601098d7dd367380692f116995b0b81ab3b3407)
  * @date November 2021
  * @license see 'LICENSE' file
+ *
+ * @see references for the employed algorithms:
+ * 	- (DesktopBronstein08): I. N. Bronstein et al., ISBN: 978-3-8171-2017-8 (2008) [in its HTML version "Desktop Bronstein"].
+ * 	- (Bronstein08): I. N. Bronstein et al., ISBN: 978-3-8171-2017-8 (2008) [in its paperback version].
  */
 
 #ifndef __TENSOR_H__
@@ -184,6 +188,15 @@ public:
 
 
 	/**
+	 * get the tensor rank
+	 */
+	static constexpr t_size order() noexcept
+	{
+		return sizeof...(SIZES);
+	}
+
+
+	/**
 	 * get the total number of elements
 	 */
 	constexpr t_size size() const noexcept
@@ -224,7 +237,7 @@ public:
 	 * element access
 	 */
 	template<class ...t_dims>
-	constexpr t_scalar& operator()(const t_dims&&... dims)
+	constexpr t_scalar& operator()(const t_dims&... dims)
 	{
 		return operator[](get_idx(
 			std::forward_as_tuple(dims...),
@@ -236,7 +249,7 @@ public:
 	 * element access
 	 */
 	template<class ...t_dims>
-	constexpr const t_scalar& operator()(const t_dims&&... dims) const
+	constexpr const t_scalar& operator()(const t_dims&... dims) const
 	{
 		return operator[](get_idx(
 			std::forward_as_tuple(dims...),
@@ -392,6 +405,60 @@ private:
 	// tensor elements
 	t_cont m_elems{};
 };
+
+
+
+/**
+ * tensor product
+ * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
+ */
+template<class t_scalar_1, std::size_t ...SIZES_1,
+	class t_scalar_2, std::size_t ...SIZES_2>
+constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
+operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+{
+	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+	using t_tensor = Tensor<t_scalar, SIZES_1..., SIZES_2...>;
+	using t_size = typename t_tensor::t_size;
+	t_tensor res;
+
+	using t_tensor_1 = std::decay_t<decltype(t1)>;
+	using t_tensor_2 = std::decay_t<decltype(t2)>;
+	constexpr const t_size rank_1 = t_tensor_1::order();
+	constexpr const t_size rank_2 = t_tensor_2::order();
+
+	if constexpr(rank_1 == 0 && rank_2 == 0)
+	{
+		res(0) = t1(0) * t2(0);
+	}
+
+	else if constexpr(rank_1 == 1 && rank_2 == 1)
+	{
+		for(t_size i=0; i<t1.template size<0>(); ++i)
+			for(t_size j=0; j<t2.template size<0>(); ++j)
+				res(i,j) = t1(i) * t2(j);
+	}
+
+	else if constexpr(rank_1 == 2 && rank_2 == 2)
+	{
+		for(t_size i=0; i<t1.template size<0>(); ++i)
+			for(t_size j=0; j<t1.template size<1>(); ++j)
+				for(t_size k=0; k<t2.template size<0>(); ++k)
+					for(t_size l=0; l<t2.template size<1>(); ++l)
+						res(i,j,k,l) = t1(i,j) * t2(k,l);
+	}
+
+	else
+	{
+		// TODO: general case:
+		//  generate rank_1 number of for loops
+		//    generate rank_2 number of for loops
+		//      res(rank_1 indices, rank_2 indices) = t1(rank_1 indices) * t2(rank_2 indices)
+	}
+
+	return res;
+}
+
 // ----------------------------------------------------------------------------
 
 

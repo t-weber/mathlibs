@@ -20,6 +20,7 @@ int main()
 	Tensor<t_real, 2,3> t1{}, t2{};
 	std::cout << "dims: " << t1.size<0>() << " " << t1.size<1>() << std::endl;
 	std::cout << "total size: " << t1.size() << std::endl;
+	std::cout << "order: " << t1.order() << std::endl;
 
 	t1(0,0) = 9;
 	t1(0,1) = 8;
@@ -33,6 +34,10 @@ int main()
 	for(std::size_t i=0; i<t1.size(); ++i)
 		std::cout << t1[i] << " ";
 	std::cout << std::endl;
+
+
+	auto t3 = t1 * t2;
+	std::cout << "tensor product order: " << t3.order() << std::endl;
 
 	return 0;
 }
