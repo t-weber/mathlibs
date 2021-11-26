@@ -25,7 +25,7 @@
  * multiply all function arguments
  */
 template<class t_ret, class... t_args>
-constexpr t_ret mult_args(const t_args&&... args)
+constexpr t_ret mult_args(const t_args&&... args) noexcept
 {
 	return ( args * ... );
 }
@@ -35,7 +35,7 @@ constexpr t_ret mult_args(const t_args&&... args)
  * get the first function argument
  */
 template<std::size_t i, class t_arg1>
-constexpr auto&& get_arg_i(t_arg1&& arg)
+constexpr auto&& get_arg_i(t_arg1&& arg) noexcept
 {
 	return arg;
 }
@@ -45,7 +45,7 @@ constexpr auto&& get_arg_i(t_arg1&& arg)
  * get the i-th function argument
  */
 template<std::size_t i, class t_arg1, class... t_args>
-constexpr auto&& get_arg_i(t_arg1&& arg, t_args&&... args)
+constexpr auto&& get_arg_i(t_arg1&& arg, t_args&&... args) noexcept
 {
 	if constexpr(i==0)
 		return arg;
@@ -57,9 +57,93 @@ constexpr auto&& get_arg_i(t_arg1&& arg, t_args&&... args)
  * get the i-th function argument
  */
 template<std::size_t i, class... t_args>
-constexpr auto&& get_arg_i(t_args&&... args)
+constexpr auto&& get_arg_i(t_args&&... args) noexcept
 {
 	return get_arg_i<i-1>(args...);
+}
+
+
+/**
+ * concatenate two sequences
+ */
+template<template<std::size_t...> class t_seq = std::index_sequence,
+	std::size_t ...seq1, std::size_t ...seq2>
+t_seq<seq1..., seq2...>
+constexpr seq_cat(const t_seq<seq1...>&, const t_seq<seq2...>&) noexcept
+{
+	return t_seq<seq1..., seq2...>{};
+}
+
+
+/**
+ * first element of a sequence
+ */
+template<template<std::size_t...> class t_seq = std::index_sequence,
+	std::size_t first, std::size_t ...seq_rest>
+constexpr std::size_t seq_first(const t_seq<first, seq_rest...>&) noexcept
+{
+	return first;
+}
+
+
+/**
+ * first n elements of a sequence
+ */
+template<template<std::size_t...> class t_seq = std::index_sequence,
+	std::size_t n, std::size_t ...seq>
+constexpr auto seq_first(const t_seq<seq...>&) noexcept
+{
+	// convert the pack into an array
+	constexpr std::size_t arr[]{seq...};
+
+	// create a new sequence with the given indices
+	auto newseq = [&arr]<std::size_t ...idx>(const t_seq<idx...>&) -> auto
+	{
+		return t_seq<arr[idx]...>();
+	};
+
+	// take the first n indices of the array
+	return newseq(std::make_index_sequence<n>());
+}
+
+
+/**
+ * last n elements of a sequence
+ */
+template<template<std::size_t...> class t_seq = std::index_sequence,
+	std::size_t n, std::size_t ...seq>
+constexpr auto seq_last(const t_seq<seq...>&) noexcept
+{
+	// size of the sequence
+	constexpr const std::size_t N = sizeof...(seq);
+
+	// convert the pack into an array
+	constexpr std::size_t arr[]{seq...};
+
+	// create a new sequence with the given indices
+	auto newseq = [&arr, N]<std::size_t ...idx>(const t_seq<idx...>&) -> auto
+	{
+		return t_seq<arr[idx+N-n]...>();
+	};
+
+	// take the first n indices of the array
+	return newseq(std::make_index_sequence<n>());
+}
+
+
+/**
+ * remove an element from a sequence
+ */
+template<template<std::size_t...> class t_seq = std::index_sequence,
+	std::size_t idx, std::size_t... seq>
+constexpr auto seq_rm(const t_seq<seq...>& idxseq) noexcept
+{
+	constexpr std::size_t N = sizeof...(seq);
+
+	auto begin = seq_first<t_seq, idx>(idxseq);
+	auto end = seq_last<t_seq, N-idx-1>(idxseq);
+
+	return seq_cat<t_seq>(begin, end);
 }
 
 
@@ -67,7 +151,7 @@ constexpr auto&& get_arg_i(t_args&&... args)
  * set all elements of the container to zero
  */
 template<class t_cont>
-void set_zero(t_cont& cont)
+void set_zero(t_cont& cont) noexcept
 {
 	using t_size = decltype(cont.size());
 	using t_elem = std::decay_t<decltype(cont[0])>;
@@ -81,7 +165,7 @@ void set_zero(t_cont& cont)
  * pick the elements with the given indices from a tuple
  */
 template<std::size_t seq_offs, std::size_t ...seq>
-constexpr auto pick_from_tuple(const auto& tup, const std::index_sequence<seq...>&)
+constexpr auto pick_from_tuple(const auto& tup, const std::index_sequence<seq...>&) noexcept
 {
 	return std::make_tuple(std::get<seq + seq_offs>(tup)...);
 }
@@ -91,7 +175,7 @@ constexpr auto pick_from_tuple(const auto& tup, const std::index_sequence<seq...
  * remove two elements from a tuple
  */
 template<std::size_t idx1, std::size_t idx2, typename ...T>
-constexpr auto remove_from_tuple(const std::tuple<T...>& tup)
+constexpr auto remove_from_tuple(const std::tuple<T...>& tup) noexcept
 {
 	constexpr const std::size_t N = sizeof...(T);
 
@@ -110,7 +194,7 @@ constexpr auto remove_from_tuple(const std::tuple<T...>& tup)
  * get an index to a multi-dimensional array with the given sizes
  */
 template<class t_tup_dims, class t_tup_sizes>
-constexpr std::size_t get_idx(const t_tup_dims& dims, const t_tup_sizes& sizes)
+constexpr std::size_t get_idx(const t_tup_dims& dims, const t_tup_sizes& sizes) noexcept
 {
 	static_assert(std::tuple_size<t_tup_dims>() == std::tuple_size<t_tup_sizes>(),
 		"Wrong number of dimensions.");

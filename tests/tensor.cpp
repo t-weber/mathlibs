@@ -15,7 +15,50 @@
 using t_real = double;
 
 
-int main()
+template<std::size_t ...seq>
+void print_seq(const std::index_sequence<seq...>&)
+{
+	std::cout << "sequence: ";
+	(std::cout << ... << (std::to_string(seq) + " "));
+	std::cout << std::endl;
+}
+
+
+void test_tuple()
+{
+	auto tup = std::make_tuple(1,2,3,4,5,6,7);
+	auto tup2 = remove_from_tuple<1,5>(tup);
+	std::cout << "new tuple size: " << std::tuple_size<decltype(tup2)>() << std::endl;
+	std::cout << "new tuple: "
+		<< std::get<0>(tup2) << " " << std::get<1>(tup2) << " "
+		<< std::get<2>(tup2) << " " << std::get<3>(tup2) << " "
+		<< std::get<4>(tup2) << std::endl;
+}
+
+
+void test_seq()
+{
+	auto seq = seq_cat<std::index_sequence>(
+		std::make_index_sequence<5>(), std::make_index_sequence<2>());
+	print_seq(seq);
+
+	std::cout << "first element: " << seq_first<std::index_sequence>(seq) << std::endl;
+	std::cout << "first 3 elements: ";
+	auto seq2 = seq_first<std::index_sequence, 3>(seq);
+	print_seq(seq2);
+
+	std::cout << "last 3 elements: ";
+	auto seq3 = seq_last<std::index_sequence, 3>(seq);
+	print_seq(seq3);
+
+
+	std::cout << "remove element: ";
+	auto seq4 = seq_rm<std::index_sequence, 3>(seq);
+	print_seq(seq4);
+}
+
+
+void test_tensor()
 {
 	Tensor<t_real, 2,3> t1{}, t2{};
 	std::cout << "dims: " << t1.size<0>() << " " << t1.size<1>() << std::endl;
@@ -42,15 +85,14 @@ int main()
 
 	Tensor<t_real, 3,3> t4{};
 	t4.contract<0,1>();
+}
 
 
-	auto tup = std::make_tuple(1,2,3,4,5,6,7);
-	auto tup2 = remove_from_tuple<1,5>(tup);
-	std::cout << "new tuple size: " << std::tuple_size<decltype(tup2)>() << std::endl;
-	std::cout << "new tuple: "
-		<< std::get<0>(tup2) << " " << std::get<1>(tup2) << " "
-		<< std::get<2>(tup2) << " " << std::get<3>(tup2) << " "
-		<< std::get<4>(tup2) << std::endl;
+int main()
+{
+	test_tuple();
+	test_seq();
+	test_tensor();
 
 	return 0;
 }
