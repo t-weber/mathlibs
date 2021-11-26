@@ -39,5 +39,18 @@ int main()
 	auto t3 = t1 * t2;
 	std::cout << "tensor product order: " << t3.order() << std::endl;
 
+
+	Tensor<t_real, 3,3> t4{};
+	t4.contract<0,1>();
+
+
+	auto tup = std::make_tuple(1,2,3,4,5,6,7);
+	auto tup2 = remove_from_tuple<1,5>(tup);
+	std::cout << "new tuple size: " << std::tuple_size<decltype(tup2)>() << std::endl;
+	std::cout << "new tuple: "
+		<< std::get<0>(tup2) << " " << std::get<1>(tup2) << " "
+		<< std::get<2>(tup2) << " " << std::get<3>(tup2) << " "
+		<< std::get<4>(tup2) << std::endl;
+
 	return 0;
 }

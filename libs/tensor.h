@@ -88,6 +88,25 @@ constexpr auto pick_from_tuple(const auto& tup, const std::index_sequence<seq...
 
 
 /**
+ * remove two elements from a tuple
+ */
+template<std::size_t idx1, std::size_t idx2, typename ...T>
+constexpr auto remove_from_tuple(const std::tuple<T...>& tup)
+{
+	constexpr const std::size_t N = sizeof...(T);
+
+	// before first index
+	auto tup1 = pick_from_tuple<0>(tup, std::make_index_sequence<idx1>());
+	// between the two indices
+	auto tup2 = pick_from_tuple<idx1+1>(tup, std::make_index_sequence<idx2-idx1-1>());
+	// after the second index
+	auto tup3 = pick_from_tuple<idx2+1>(tup, std::make_index_sequence<N-idx2-1>());
+
+	return std::tuple_cat(tup1, tup2, tup3);
+}
+
+
+/**
  * get an index to a multi-dimensional array with the given sizes
  */
 template<class t_tup_dims, class t_tup_sizes>
@@ -209,7 +228,7 @@ public:
 	 * get the number of elements at a given position
 	 */
 	template<t_size i>
-	constexpr t_size size() const
+	constexpr t_size size() const noexcept
 	{
 		return get_arg_i<i>(SIZES...);
 	}
@@ -218,7 +237,7 @@ public:
 	/**
 	 * linear element access
 	 */
-	constexpr t_scalar& operator[](t_size i)
+	constexpr t_scalar& operator[](t_size i) noexcept
 	{
 		return m_elems[i];
 	}
@@ -227,7 +246,7 @@ public:
 	/**
 	 * linear element access
 	 */
-	constexpr const t_scalar& operator[](t_size i) const
+	constexpr const t_scalar& operator[](t_size i) const noexcept
 	{
 		return m_elems[i];
 	}
@@ -235,9 +254,10 @@ public:
 
 	/**
 	 * element access
+	 * TODO: make pure compile-time version without tuples
 	 */
 	template<class ...t_dims>
-	constexpr t_scalar& operator()(const t_dims&... dims)
+	constexpr t_scalar& operator()(const t_dims&... dims) noexcept
 	{
 		return operator[](get_idx(
 			std::forward_as_tuple(dims...),
@@ -249,13 +269,23 @@ public:
 	 * element access
 	 */
 	template<class ...t_dims>
-	constexpr const t_scalar& operator()(const t_dims&... dims) const
+	constexpr const t_scalar& operator()(const t_dims&... dims) const noexcept
 	{
 		return operator[](get_idx(
 			std::forward_as_tuple(dims...),
 			std::forward_as_tuple(SIZES...)));
 	}
 
+
+	/**
+	 * tensor contraction
+	 * @see (DesktopBronstein08), ch. 4, equ. (4.75)
+	 */
+	template<t_size idx1, t_size idx2>
+	void contract() noexcept
+	{
+		// TODO
+	}
 
 
 	// ------------------------------------------------------------------------
@@ -415,7 +445,7 @@ private:
 template<class t_scalar_1, std::size_t ...SIZES_1,
 	class t_scalar_2, std::size_t ...SIZES_2>
 constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
-operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
 {
 	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
 	using t_tensor = Tensor<t_scalar, SIZES_1..., SIZES_2...>;
@@ -439,18 +469,26 @@ operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZ
 				res(i,j) = t1(i) * t2(j);
 	}
 
-	else if constexpr(rank_1 == 2 && rank_2 == 2)
+	/*else if constexpr(rank_1 == 2 && rank_2 == 2)
 	{
 		for(t_size i=0; i<t1.template size<0>(); ++i)
 			for(t_size j=0; j<t1.template size<1>(); ++j)
 				for(t_size k=0; k<t2.template size<0>(); ++k)
 					for(t_size l=0; l<t2.template size<1>(); ++l)
 						res(i,j,k,l) = t1(i,j) * t2(k,l);
-	}
+	}*/
 
+	// general case
 	else
 	{
-		// TODO: general case:
+		const t_size N1 = t1.size();
+		const t_size N2 = t2.size();
+
+		for(t_size i=0; i<N1; ++i)
+			for(t_size j=0; j<N2; ++j)
+				res[i*N2 + j] = t1[i] * t2[j];
+
+		// alternatively:
 		//  generate rank_1 number of for loops
 		//    generate rank_2 number of for loops
 		//      res(rank_1 indices, rank_2 indices) = t1(rank_1 indices) * t2(rank_2 indices)
@@ -459,6 +497,18 @@ operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZ
 	return res;
 }
 
+
+/**
+ * tensor product
+ * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
+ */
+template<class t_scalar_1, std::size_t ...SIZES_1,
+class t_scalar_2, std::size_t ...SIZES_2>
+constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
+operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+{
+	return tensor_prod(t1, t2);
+}
 // ----------------------------------------------------------------------------
 
 
