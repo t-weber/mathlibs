@@ -18,7 +18,6 @@ using t_real = double;
 template<std::size_t ...seq>
 void print_seq(const std::index_sequence<seq...>&)
 {
-	std::cout << "sequence: ";
 	(std::cout << ... << (std::to_string(seq) + " "));
 	std::cout << std::endl;
 }
@@ -40,20 +39,20 @@ void test_seq()
 {
 	auto seq = seq_cat<std::index_sequence>(
 		std::make_index_sequence<5>(), std::make_index_sequence<2>());
+	std::cout << "sequence: ";
 	print_seq(seq);
 
 	std::cout << "first element: " << seq_first<std::index_sequence>(seq) << std::endl;
-	std::cout << "first 3 elements: ";
 	auto seq2 = seq_first<std::index_sequence, 3>(seq);
+	std::cout << "first 3 elements: ";
 	print_seq(seq2);
 
-	std::cout << "last 3 elements: ";
 	auto seq3 = seq_last<std::index_sequence, 3>(seq);
+	std::cout << "last 3 elements: ";
 	print_seq(seq3);
 
-
-	std::cout << "remove element: ";
 	auto seq4 = seq_rm<std::index_sequence, 3>(seq);
+	std::cout << "remove element: ";
 	print_seq(seq4);
 }
 
@@ -84,7 +83,11 @@ void test_tensor()
 
 
 	Tensor<t_real, 3,3> t4{};
-	t4.contract<0,1>();
+	t4(0,0) = 1; t4(0,1) = 2; t4(0,2) = 3;
+	t4(1,0) = 4; t4(1,1) = 5; t4(1,2) = 6;
+	t4(2,0) = 7; t4(2,1) = 8; t4(2,2) = 9;
+	auto c = t4.contract<0,1>();
+	std::cout << "contraction: order: " << c.order() << ", size: " << c.size() << ", value: " << c[0] << std::endl;
 }
 
 

@@ -31,6 +31,14 @@ constexpr t_ret mult_args(const t_args&&... args) noexcept
 }
 
 
+template<class t_ret>
+constexpr t_ret mult_args() noexcept
+{
+	// return 1 for rank-0 tensor (scalar)
+	return t_ret{1};
+}
+
+
 /**
  * get the first function argument
  */
@@ -118,7 +126,7 @@ constexpr auto seq_last(const t_seq<seq...>&) noexcept
 	constexpr const std::size_t N = sizeof...(seq);
 
 	// convert the pack into an array
-	constexpr std::size_t arr[]{seq...};
+	constexpr const std::size_t arr[]{seq...};
 
 	// create a new sequence with the given indices
 	auto newseq = [&arr, N]<std::size_t ...idx>(const t_seq<idx...>&) -> auto
@@ -148,7 +156,7 @@ constexpr auto seq_rm(const t_seq<seq...>& idxseq) noexcept
 
 
 /**
- * set all elements of the container to zero
+ * set all elements of a container to zero
  */
 template<class t_cont>
 void set_zero(t_cont& cont) noexcept
@@ -191,10 +199,20 @@ constexpr auto remove_from_tuple(const std::tuple<T...>& tup) noexcept
 
 
 /**
- * get an index to a multi-dimensional array with the given sizes
+ * convert a container to a tuple
+ */
+template<class t_cont, std::size_t... seq>
+auto to_tuple(const t_cont& cont, const std::index_sequence<seq...>&) noexcept
+{
+	return std::make_tuple(cont[seq]...);
+}
+
+
+/**
+ * get a linear index to a multi-dimensional array with the given sizes
  */
 template<class t_tup_dims, class t_tup_sizes>
-constexpr std::size_t get_idx(const t_tup_dims& dims, const t_tup_sizes& sizes) noexcept
+constexpr std::size_t get_linear_index(const t_tup_dims& dims, const t_tup_sizes& sizes) noexcept
 {
 	static_assert(std::tuple_size<t_tup_dims>() == std::tuple_size<t_tup_sizes>(),
 		"Wrong number of dimensions.");
@@ -218,7 +236,7 @@ constexpr std::size_t get_idx(const t_tup_dims& dims, const t_tup_sizes& sizes) 
 
 		std::size_t idx =
 			std::get<0>(dims) * std::get<0>(sizes_2) +
-			get_idx(dims_without_first, sizes_without_first);
+			get_linear_index(dims_without_first, sizes_without_first);
 
 		return idx;
 	}
@@ -312,7 +330,7 @@ public:
 	 * get the number of elements at a given position
 	 */
 	template<t_size i>
-	constexpr t_size size() const noexcept
+	static constexpr t_size size() noexcept
 	{
 		return get_arg_i<i>(SIZES...);
 	}
@@ -343,7 +361,7 @@ public:
 	template<class ...t_dims>
 	constexpr t_scalar& operator()(const t_dims&... dims) noexcept
 	{
-		return operator[](get_idx(
+		return operator[](::get_linear_index(
 			std::forward_as_tuple(dims...),
 			std::forward_as_tuple(SIZES...)));
 	}
@@ -355,20 +373,113 @@ public:
 	template<class ...t_dims>
 	constexpr const t_scalar& operator()(const t_dims&... dims) const noexcept
 	{
-		return operator[](get_idx(
+		return operator[](::get_linear_index(
 			std::forward_as_tuple(dims...),
 			std::forward_as_tuple(SIZES...)));
 	}
 
 
 	/**
+	 * convert a linear index to an array index
+	 */
+	std::array<t_size, sizeof...(SIZES)> get_array_index(t_size idx) const
+	{
+		constexpr const t_size order = sizeof...(SIZES);
+		constexpr const t_size sizes[order]{SIZES...};
+
+		std::array<t_size, order> arridx{};
+
+		for(int i=(int)order-1; i>=0; --i)
+		{
+			arridx[i] = idx % sizes[i];
+			idx /= sizes[i];
+		}
+
+		return arridx;
+	}
+
+
+	/**
+	 * convert an array index to a linear index
+	 */
+	constexpr t_size get_linear_index(const std::array<t_size, sizeof...(SIZES)>& arr) const
+	{
+		auto tup = to_tuple(arr, std::make_index_sequence<sizeof...(SIZES)>());
+		return ::get_linear_index(tup, std::forward_as_tuple(SIZES...));
+	}
+
+
+	/**
 	 * tensor contraction
+	 * e.g. contract a_{ijk} over i=k: a_j = a{iji} = a{1j1} + a{2j2} + ...
 	 * @see (DesktopBronstein08), ch. 4, equ. (4.75)
 	 */
 	template<t_size idx1, t_size idx2>
-	void contract() noexcept
+	auto contract() const noexcept
 	{
-		// TODO
+		// remove indices
+		constexpr const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;
+
+		constexpr const auto seq = std::index_sequence<SIZES...>();
+		constexpr const auto seq_rm1 = seq_rm<std::index_sequence, idx1>(seq);
+		constexpr const auto seq_rm2 = seq_rm<std::index_sequence, idx2_new>(seq_rm1);
+
+
+		// create contracted tensor
+		auto t = []<t_size... idxseq>(const std::index_sequence<idxseq...>&) -> auto
+		{
+			return Tensor<t_scalar, idxseq...>();
+		}(seq_rm2);
+
+
+		// tensor types
+		using t_tensor = Tensor<t_scalar, SIZES...>;
+		using t_tensor_contr = std::decay_t<decltype(t)>;
+		static_assert(t_tensor::size<idx1>() == t_tensor::size<idx2>(),
+			"Cannot contract over indices of different dimension.");
+
+
+		// calculate the contracted tensor value
+		constexpr const t_size order = t_tensor::order();
+		constexpr const t_size order_contr = t_tensor_contr::order();
+		static_assert(order-2 == order_contr, "Wrong order of contracted tensor.");
+
+		// create an index array to the full tensor from indices to the contracted one
+		auto get_full_idx = [](const std::array<t_size, order_contr>& arr_contr)
+			-> std::array<t_size, order>
+		{
+			std::array<t_size, order> arr{};
+
+			for(t_size i=0; i<order_contr; ++i)
+			{
+				// copy the index array, leaving gaps at idx1 and idx2
+				t_size idx_full = i;
+				if(idx_full >= idx1) ++idx_full;
+				if(idx_full >= idx2) ++idx_full;
+				arr[idx_full] = arr_contr[i];
+			}
+
+			return arr;
+		};
+
+		// iterate over the components of the contracted tensor
+		for(t_size idx_contr_lin=0; idx_contr_lin < t.size(); ++idx_contr_lin)
+		{
+			auto idx_contr_arr = t.get_array_index(idx_contr_lin);
+			auto idx_full_arr = get_full_idx(idx_contr_arr);
+
+			// iterate over the indices to contract
+			for(t_size idx=0; idx<t_tensor::size<idx1>(); ++idx)
+			{
+				// set the two indices to contract over equal
+				idx_full_arr[idx1] = idx_full_arr[idx2] = idx;
+
+				auto idx_full_lin = get_linear_index(idx_full_arr);
+				t[idx_contr_lin] += this->operator[](idx_full_lin);
+			}
+		}
+
+		return t;
 	}
 
 
