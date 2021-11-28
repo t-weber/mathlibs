@@ -88,6 +88,9 @@ void test_tensor()
 	t4(2,0) = 7; t4(2,1) = 8; t4(2,2) = 9;
 	auto c = t4.contract<0,1>();
 	std::cout << "contraction: order: " << c.order() << ", size: " << c.size() << ", value: " << c[0] << std::endl;
+
+	std::cout << "static element access: " << t4.operator()<1,1>() << std::endl;
+	std::cout << "dynamic element access: " << t4(1,1) << std::endl;
 }
 
 

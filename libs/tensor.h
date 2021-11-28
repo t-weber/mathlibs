@@ -12,242 +12,11 @@
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
 
-#include <array>
-#include <tuple>
-#include <type_traits>
 #include <iostream>
 
-
-// ----------------------------------------------------------------------------
-// helper functions
-// ----------------------------------------------------------------------------
-/**
- * multiply all function arguments
- */
-template<class t_ret, class... t_args>
-constexpr t_ret mult_args(const t_args&&... args) noexcept
-{
-	return ( args * ... );
-}
+#include "variadic_algos.h"
 
 
-template<class t_ret>
-constexpr t_ret mult_args() noexcept
-{
-	// return 1 for rank-0 tensor (scalar)
-	return t_ret{1};
-}
-
-
-/**
- * get the first function argument
- */
-template<std::size_t i, class t_arg1>
-constexpr auto&& get_arg_i(t_arg1&& arg) noexcept
-{
-	return arg;
-}
-
-
-/**
- * get the i-th function argument
- */
-template<std::size_t i, class t_arg1, class... t_args>
-constexpr auto&& get_arg_i(t_arg1&& arg, t_args&&... args) noexcept
-{
-	if constexpr(i==0)
-		return arg;
-	return get_arg_i<i-1>(args...);
-}
-
-
-/**
- * get the i-th function argument
- */
-template<std::size_t i, class... t_args>
-constexpr auto&& get_arg_i(t_args&&... args) noexcept
-{
-	return get_arg_i<i-1>(args...);
-}
-
-
-/**
- * concatenate two sequences
- */
-template<template<std::size_t...> class t_seq = std::index_sequence,
-	std::size_t ...seq1, std::size_t ...seq2>
-t_seq<seq1..., seq2...>
-constexpr seq_cat(const t_seq<seq1...>&, const t_seq<seq2...>&) noexcept
-{
-	return t_seq<seq1..., seq2...>{};
-}
-
-
-/**
- * first element of a sequence
- */
-template<template<std::size_t...> class t_seq = std::index_sequence,
-	std::size_t first, std::size_t ...seq_rest>
-constexpr std::size_t seq_first(const t_seq<first, seq_rest...>&) noexcept
-{
-	return first;
-}
-
-
-/**
- * first n elements of a sequence
- */
-template<template<std::size_t...> class t_seq = std::index_sequence,
-	std::size_t n, std::size_t ...seq>
-constexpr auto seq_first(const t_seq<seq...>&) noexcept
-{
-	// convert the pack into an array
-	constexpr std::size_t arr[]{seq...};
-
-	// create a new sequence with the given indices
-	auto newseq = [&arr]<std::size_t ...idx>(const t_seq<idx...>&) -> auto
-	{
-		return t_seq<arr[idx]...>();
-	};
-
-	// take the first n indices of the array
-	return newseq(std::make_index_sequence<n>());
-}
-
-
-/**
- * last n elements of a sequence
- */
-template<template<std::size_t...> class t_seq = std::index_sequence,
-	std::size_t n, std::size_t ...seq>
-constexpr auto seq_last(const t_seq<seq...>&) noexcept
-{
-	// size of the sequence
-	constexpr const std::size_t N = sizeof...(seq);
-
-	// convert the pack into an array
-	constexpr const std::size_t arr[]{seq...};
-
-	// create a new sequence with the given indices
-	auto newseq = [&arr, N]<std::size_t ...idx>(const t_seq<idx...>&) -> auto
-	{
-		return t_seq<arr[idx+N-n]...>();
-	};
-
-	// take the first n indices of the array
-	return newseq(std::make_index_sequence<n>());
-}
-
-
-/**
- * remove an element from a sequence
- */
-template<template<std::size_t...> class t_seq = std::index_sequence,
-	std::size_t idx, std::size_t... seq>
-constexpr auto seq_rm(const t_seq<seq...>& idxseq) noexcept
-{
-	constexpr std::size_t N = sizeof...(seq);
-
-	auto begin = seq_first<t_seq, idx>(idxseq);
-	auto end = seq_last<t_seq, N-idx-1>(idxseq);
-
-	return seq_cat<t_seq>(begin, end);
-}
-
-
-/**
- * set all elements of a container to zero
- */
-template<class t_cont>
-void set_zero(t_cont& cont) noexcept
-{
-	using t_size = decltype(cont.size());
-	using t_elem = std::decay_t<decltype(cont[0])>;
-
-	for(t_size i=0; i<cont.size(); ++i)
-		cont[i] = t_elem{};
-}
-
-
-/**
- * pick the elements with the given indices from a tuple
- */
-template<std::size_t seq_offs, std::size_t ...seq>
-constexpr auto pick_from_tuple(const auto& tup, const std::index_sequence<seq...>&) noexcept
-{
-	return std::make_tuple(std::get<seq + seq_offs>(tup)...);
-}
-
-
-/**
- * remove two elements from a tuple
- */
-template<std::size_t idx1, std::size_t idx2, typename ...T>
-constexpr auto remove_from_tuple(const std::tuple<T...>& tup) noexcept
-{
-	constexpr const std::size_t N = sizeof...(T);
-
-	// before first index
-	auto tup1 = pick_from_tuple<0>(tup, std::make_index_sequence<idx1>());
-	// between the two indices
-	auto tup2 = pick_from_tuple<idx1+1>(tup, std::make_index_sequence<idx2-idx1-1>());
-	// after the second index
-	auto tup3 = pick_from_tuple<idx2+1>(tup, std::make_index_sequence<N-idx2-1>());
-
-	return std::tuple_cat(tup1, tup2, tup3);
-}
-
-
-/**
- * convert a container to a tuple
- */
-template<class t_cont, std::size_t... seq>
-auto to_tuple(const t_cont& cont, const std::index_sequence<seq...>&) noexcept
-{
-	return std::make_tuple(cont[seq]...);
-}
-
-
-/**
- * get a linear index to a multi-dimensional array with the given sizes
- */
-template<class t_tup_dims, class t_tup_sizes>
-constexpr std::size_t get_linear_index(const t_tup_dims& dims, const t_tup_sizes& sizes) noexcept
-{
-	static_assert(std::tuple_size<t_tup_dims>() == std::tuple_size<t_tup_sizes>(),
-		"Wrong number of dimensions.");
-
-	constexpr const std::size_t N = std::tuple_size<t_tup_sizes>();
-	if constexpr(N == 0)
-		return 0;
-	else if constexpr(N == 1)
-		return std::get<0>(dims);
-	//else if constexpr(N == 2)
-	//	return std::get<0>(dims)*std::get<1>(sizes) + std::get<1>(dims);
-	else if constexpr(N > 1)
-	{
-		// remove first element of the sizes tuple
-		auto sizes_1 = pick_from_tuple<1>(sizes, std::make_index_sequence<N-1>());
-		// add a "1" to the tuple
-		auto sizes_2 = std::tuple_cat(sizes_1, std::make_tuple(1));
-
-		auto sizes_without_first = pick_from_tuple<1>(sizes_2, std::make_index_sequence<N-1>());
-		auto dims_without_first = pick_from_tuple<1>(dims, std::make_index_sequence<N-1>());
-
-		std::size_t idx =
-			std::get<0>(dims) * std::get<0>(sizes_2) +
-			get_linear_index(dims_without_first, sizes_without_first);
-
-		return idx;
-	}
-
-	return 0;
-}
-// ----------------------------------------------------------------------------
-
-
-
-// ----------------------------------------------------------------------------
 /**
  * tensor with static size
  */
@@ -336,12 +105,102 @@ public:
 	}
 
 
+	// ------------------------------------------------------------------------
+	// static element access
+	// ------------------------------------------------------------------------
+	/**
+	 * linear element access
+	 */
+	template<t_size I>
+	constexpr t_scalar& get_lin() noexcept
+	{
+		return m_elems[I];
+	}
+
+
+	/**
+	 * linear element access
+	 */
+	template<t_size I>
+	constexpr const t_scalar& get_lin() const noexcept
+	{
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin<I>();
+	}
+
+
+	/**
+	 * element access
+	 */
+	template<t_size... DIMS>
+	constexpr t_scalar& get() noexcept
+	{
+		constexpr const t_size idx =
+			::get_linear_index(
+				std::index_sequence<SIZES...>(),
+				std::index_sequence<DIMS...>());
+
+		return get_lin<idx>();
+	}
+
+
+	/**
+	 * element access
+	 */
+	template<t_size... DIMS>
+	constexpr const t_scalar& get() const noexcept
+	{
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get<DIMS...>();
+	}
+
+
+	/**
+	 * element access
+	 */
+	template<t_size... DIMS>
+	constexpr t_scalar& operator()() noexcept
+	{
+		return get<DIMS...>();
+	}
+
+
+	/**
+	 * element access
+	 */
+	template<t_size... DIMS>
+	constexpr const t_scalar& operator()() const noexcept
+	{
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator()<DIMS...>();
+	}
+	// ------------------------------------------------------------------------
+
+
+	// ------------------------------------------------------------------------
+	// dynamic element access
+	// ------------------------------------------------------------------------
+	/**
+	 * linear element access
+	 */
+	constexpr t_scalar& get_lin(t_size i) noexcept
+	{
+		return m_elems[i];
+	}
+
+
+	/**
+	 * linear element access
+	 */
+	constexpr const t_scalar& get_lin(t_size i) const noexcept
+	{
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin(i);
+	}
+
+
 	/**
 	 * linear element access
 	 */
 	constexpr t_scalar& operator[](t_size i) noexcept
 	{
-		return m_elems[i];
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin(i);
 	}
 
 
@@ -350,20 +209,45 @@ public:
 	 */
 	constexpr const t_scalar& operator[](t_size i) const noexcept
 	{
-		return m_elems[i];
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator[](i);
 	}
 
 
 	/**
 	 * element access
-	 * TODO: make pure compile-time version without tuples
+	 */
+	template<class ...t_dims>
+	constexpr t_scalar& get(const t_dims&... dims) noexcept
+	{
+		const std::array<std::size_t, sizeof...(SIZES)>
+			dims_arr{{static_cast<std::size_t>(dims)...}};
+		const t_size idx = ::get_linear_index<SIZES...>(dims_arr);
+
+		return operator[](idx);
+
+		//return operator[](::get_linear_index(
+		//	std::forward_as_tuple(dims...),
+		//	std::forward_as_tuple(SIZES...)));
+	}
+
+
+	/**
+	 * element access
+	 */
+	template<class ...t_dims>
+	constexpr const t_scalar& get(const t_dims&... dims) const noexcept
+	{
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get<t_dims...>(dims...);
+	}
+
+
+	/**
+	 * element access
 	 */
 	template<class ...t_dims>
 	constexpr t_scalar& operator()(const t_dims&... dims) noexcept
 	{
-		return operator[](::get_linear_index(
-			std::forward_as_tuple(dims...),
-			std::forward_as_tuple(SIZES...)));
+		return get<t_dims...>(dims...);
 	}
 
 
@@ -373,10 +257,9 @@ public:
 	template<class ...t_dims>
 	constexpr const t_scalar& operator()(const t_dims&... dims) const noexcept
 	{
-		return operator[](::get_linear_index(
-			std::forward_as_tuple(dims...),
-			std::forward_as_tuple(SIZES...)));
+		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator()<t_dims...>(dims...);
 	}
+	// ------------------------------------------------------------------------
 
 
 	/**
@@ -402,10 +285,13 @@ public:
 	/**
 	 * convert an array index to a linear index
 	 */
-	constexpr t_size get_linear_index(const std::array<t_size, sizeof...(SIZES)>& arr) const
+	constexpr t_size get_linear_index(
+		const std::array<t_size, sizeof...(SIZES)>& arr) const
 	{
-		auto tup = to_tuple(arr, std::make_index_sequence<sizeof...(SIZES)>());
-		return ::get_linear_index(tup, std::forward_as_tuple(SIZES...));
+		return ::get_linear_index<SIZES...>(arr);
+
+		//auto tup = to_tuple(arr, std::make_index_sequence<sizeof...(SIZES)>());
+		//return ::get_linear_index(tup, std::forward_as_tuple(SIZES...));
 	}
 
 
@@ -485,7 +371,6 @@ public:
 
 	// ------------------------------------------------------------------------
 	// operators
-
 	/**
 	 * unary +
 	 */
@@ -704,7 +589,6 @@ operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZ
 {
 	return tensor_prod(t1, t2);
 }
-// ----------------------------------------------------------------------------
 
 
 #endif
