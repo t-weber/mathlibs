@@ -1,5 +1,5 @@
 /**
- * tensor class
+ * statically sizes tensor class
  * @author Tobias Weber (ident: 486fbae61c79af61ae9217361601098d7dd367380692f116995b0b81ab3b3407)
  * @date November 2021
  * @license see 'LICENSE' file
@@ -9,10 +9,10 @@
  * 	- (Bronstein08): I. N. Bronstein et al., ISBN: 978-3-8171-2017-8 (2008) [in its paperback version].
  */
 
-#ifndef __TENSOR_H__
-#define __TENSOR_H__
+#ifndef __TENSOR_STAT_H__
+#define __TENSOR_STAT_H__
 
-#include <iostream>
+#include <array>
 
 #include "variadic_algos.h"
 
@@ -539,17 +539,17 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, S
 
 	if constexpr(rank_1 == 0 && rank_2 == 0)
 	{
-		res(0) = t1(0) * t2(0);
+		res[0] = t1[0] * t2[0];
 	}
 
-	else if constexpr(rank_1 == 1 && rank_2 == 1)
+	/*else if constexpr(rank_1 == 1 && rank_2 == 1)
 	{
 		for(t_size i=0; i<t1.template size<0>(); ++i)
 			for(t_size j=0; j<t2.template size<0>(); ++j)
 				res(i,j) = t1(i) * t2(j);
 	}
 
-	/*else if constexpr(rank_1 == 2 && rank_2 == 2)
+	else if constexpr(rank_1 == 2 && rank_2 == 2)
 	{
 		for(t_size i=0; i<t1.template size<0>(); ++i)
 			for(t_size j=0; j<t1.template size<1>(); ++j)

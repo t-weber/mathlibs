@@ -8,6 +8,7 @@
  */
 
 #include "tensor.h"
+#include "tensor_dyn.h"
 
 #include <iostream>
 
@@ -25,6 +26,8 @@ void print_seq(const std::index_sequence<seq...>&)
 
 void test_tuple()
 {
+	std::cout << "\n" << __func__ << std::endl;
+
 	auto tup = std::make_tuple(1,2,3,4,5,6,7);
 	auto tup2 = remove_from_tuple<1,5>(tup);
 	std::cout << "new tuple size: " << std::tuple_size<decltype(tup2)>() << std::endl;
@@ -37,6 +40,8 @@ void test_tuple()
 
 void test_seq()
 {
+	std::cout << "\n" << __func__ << std::endl;
+
 	auto seq = seq_cat<std::index_sequence>(
 		std::make_index_sequence<5>(), std::make_index_sequence<2>());
 	std::cout << "sequence: ";
@@ -59,6 +64,8 @@ void test_seq()
 
 void test_tensor()
 {
+	std::cout << "\n" << __func__ << std::endl;
+
 	Tensor<t_real, 2,3> t1{}, t2{};
 	std::cout << "dims: " << t1.size<0>() << " " << t1.size<1>() << std::endl;
 	std::cout << "total size: " << t1.size() << std::endl;
@@ -94,11 +101,24 @@ void test_tensor()
 }
 
 
+void test_tensor_dyn()
+{
+	std::cout << "\n" << __func__ << std::endl;
+
+	TensorDyn<t_real> t1({2,2});
+	t1({0,0}) = 5; t1({0,1}) = 4;
+	t1({1,0}) = 3; t1({1,1}) = 2;
+
+	std::cout << t1({1,1}) << std::endl;
+}
+
+
 int main()
 {
 	test_tuple();
 	test_seq();
 	test_tensor();
+	test_tensor_dyn();
 
 	return 0;
 }

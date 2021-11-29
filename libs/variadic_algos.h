@@ -151,7 +151,7 @@ constexpr auto seq_rm(const t_seq<seq...>& idxseq) noexcept
  * set all elements of a container to zero
  */
 template<class t_cont>
-void set_zero(t_cont& cont) noexcept
+constexpr void set_zero(t_cont& cont) noexcept
 {
 	using t_size = decltype(cont.size());
 	using t_elem = std::decay_t<decltype(cont[0])>;
