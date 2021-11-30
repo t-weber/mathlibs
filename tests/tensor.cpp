@@ -105,11 +105,38 @@ void test_tensor_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	TensorDyn<t_real> t1({2,2});
-	t1({0,0}) = 5; t1({0,1}) = 4;
-	t1({1,0}) = 3; t1({1,1}) = 2;
+	TensorDyn<t_real> t1{{2,3}}, t2{{2,3}};
+	std::cout << "dims: " << t1.size(0) << " " << t1.size(1) << std::endl;
+	std::cout << "total size: " << t1.size() << std::endl;
+	std::cout << "order: " << t1.order() << std::endl;
 
-	std::cout << t1({1,1}) << std::endl;
+	t1({0,0}) = 9;
+	t1({0,1}) = 8;
+	t1({1,1}) = 5;
+
+	t2({0, 1}) = -1;
+
+	t1 += 2*t2;
+
+	std::cout << "elements: ";
+	for(std::size_t i=0; i<t1.size(); ++i)
+		std::cout << t1[i] << " ";
+	std::cout << std::endl;
+
+
+	auto t3 = t1 * t2;
+	std::cout << "tensor product order: " << t3.order() << std::endl;
+
+
+	TensorDyn<t_real> t4({3,3});
+	t4({0,0}) = 1; t4({0,1}) = 2; t4({0,2}) = 3;
+	t4({1,0}) = 4; t4({1,1}) = 5; t4({1,2}) = 6;
+	t4({2,0}) = 7; t4({2,1}) = 8; t4({2,2}) = 9;
+
+	auto c = t4.contract(0, 1);
+
+	std::cout << "contraction: order: " << c.order() << ", size: " << c.size() << ", value: " << c[0] << std::endl;
+	std::cout << "element access: " << t4({1,1}) << std::endl;
 }
 
 

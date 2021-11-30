@@ -301,7 +301,7 @@ public:
 	 * @see (DesktopBronstein08), ch. 4, equ. (4.75)
 	 */
 	template<t_size idx1, t_size idx2>
-	auto contract() const noexcept
+	constexpr auto contract() const noexcept
 	{
 		// remove indices
 		constexpr const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;

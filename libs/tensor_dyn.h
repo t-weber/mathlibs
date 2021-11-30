@@ -13,6 +13,7 @@
 #define __TENSOR_DYN_H__
 
 #include <vector>
+//#include <valarray>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
@@ -33,7 +34,7 @@ protected:
 	/**
 	 * get a linear index to a multi-dimensional array with the given sizes
 	 */
-	t_size get_linear_index(const t_cont_sizes& dims) noexcept
+	t_size get_linear_index(const t_cont_sizes& dims) const noexcept
 	{
 		assert(m_sizes.size() == dims.size());
 
@@ -70,7 +71,7 @@ protected:
 	t_cont_sizes get_array_index(t_size idx) const
 	{
 		t_cont_sizes arridx{};
-		arridx.reserve(order(), 0);
+		arridx.resize(order(), 0);
 
 		for(int i=(int)order()-1; i>=0; --i)
 		{
@@ -98,7 +99,7 @@ public:
 	void SetSizes(const t_init<t_size>& sizes) noexcept
 	{
 		m_sizes = sizes;
-		t_size m_lin_size = std::reduce(m_sizes.begin(), m_sizes.end(), 1, std::multiplies<t_size>{});
+		t_size m_lin_size = std::reduce(std::begin(m_sizes), std::end(m_sizes), 1, std::multiplies<t_size>{});
 		m_elems.resize(m_lin_size, 0);
 	}
 
@@ -154,7 +155,7 @@ public:
 	/**
 	 * get the tensor rank
 	 */
-	t_size order() noexcept
+	t_size order() const noexcept
 	{
 		return m_sizes.size();
 	}
@@ -258,6 +259,63 @@ public:
 		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->operator()<t_init>(dims);
 	}
 	// ------------------------------------------------------------------------
+
+
+	/**
+	 * tensor contraction
+	 * e.g. contract a_{ijk} over i=k: a_j = a{iji} = a{1j1} + a{2j2} + ...
+	 * @see (DesktopBronstein08), ch. 4, equ. (4.75)
+	 */
+	TensorDyn<t_scalar, t_size, t_cont_templ>
+	contract(t_size idx1, t_size idx2) const noexcept
+	{
+		const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;
+
+		t_cont_sizes sizes = GetSizes();
+		sizes.erase(std::begin(sizes) + idx1);
+		sizes.erase(std::begin(sizes) + idx2_new);
+
+		// contracted tensor
+		TensorDyn<t_scalar, t_size, t_cont_templ> t{sizes};
+		assert(order()-2 == t.order());
+
+		// create an index array to the full tensor from indices to the contracted one
+		auto get_full_idx = [this, &t, idx1, idx2](const t_cont_sizes& arr_contr) -> t_cont_sizes
+		{
+			t_cont_sizes arr{};
+			arr.resize(this->order());
+
+			for(t_size i=0; i<t.order(); ++i)
+			{
+				// copy the index array, leaving gaps at idx1 and idx2
+				t_size idx_full = i;
+				if(idx_full >= idx1) ++idx_full;
+				if(idx_full >= idx2) ++idx_full;
+				arr[idx_full] = arr_contr[i];
+			}
+
+			return arr;
+		};
+
+		// iterate over the components of the contracted tensor
+		for(t_size idx_contr_lin=0; idx_contr_lin < t.size(); ++idx_contr_lin)
+		{
+			auto idx_contr_arr = t.get_array_index(idx_contr_lin);
+			auto idx_full_arr = get_full_idx(idx_contr_arr);
+
+			// iterate over the indices to contract
+			for(t_size idx=0; idx<size(idx1); ++idx)
+			{
+				// set the two indices to contract over equal
+				idx_full_arr[idx1] = idx_full_arr[idx2] = idx;
+
+				auto idx_full_lin = get_linear_index(idx_full_arr);
+				t[idx_contr_lin] += this->operator[](idx_full_lin);
+			}
+		}
+
+		return t;
+	}
 
 
 	// ------------------------------------------------------------------------
@@ -418,6 +476,58 @@ private:
 	t_cont m_elems{};
 	t_cont_sizes m_sizes{};
 };
+
+
+
+/**
+ * tensor product
+ * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
+ */
+template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+TensorDyn<t_scalar, t_size, t_cont_templ> tensor_prod(
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
+{
+	// merge the two size vectors
+	typename TensorDyn<t_scalar, t_size, t_cont_templ>::t_cont_sizes sizes;
+	sizes.reserve(t1.order() + t2.order());
+	std::merge(std::begin(t1.GetSizes()), std::end(t1.GetSizes()),
+		std::begin(t2.GetSizes()), std::end(t2.GetSizes()),
+		std::back_inserter(sizes));
+
+	TensorDyn<t_scalar, t_size, t_cont_templ> res{sizes};
+
+	if(t1.order() == 0 && t2.order() == 0)
+	{
+		res[0] = t1[0] * t2[0];
+	}
+
+	// general case
+	else
+	{
+		const t_size N1 = t1.size();
+		const t_size N2 = t2.size();
+
+		for(t_size i=0; i<N1; ++i)
+			for(t_size j=0; j<N2; ++j)
+				res[i*N2 + j] = t1[i] * t2[j];
+	}
+
+	return res;
+}
+
+
+/**
+ * tensor product
+ * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
+ */
+template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
+{
+	return tensor_prod<t_scalar, t_size, t_cont_templ>(t1, t2);
+}
 
 
 #endif
