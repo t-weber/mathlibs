@@ -19,12 +19,7 @@
 
 #include "math_algos.h"
 #include "math_conts.h"
-
-
-template<class T, class t_val = typename std::tuple_element<0, T>::type>
-constexpr bool is_pair =
-	std::is_same_v<T, std::pair<t_val, t_val>> ||
-	std::is_same_v<T, std::tuple<t_val, t_val>>;
+#include "helpers.h"
 
 
 /**
