@@ -36,7 +36,7 @@ public:
 	}
 
 
-	~Tensor() = default;
+	~Tensor() noexcept = default;
 
 
 	/**
@@ -589,6 +589,59 @@ operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZ
 {
 	return tensor_prod(t1, t2);
 }
+
+
+
+// --------------------------------------------------------------------------------
+/**
+ * matrix with static size
+ */
+template<class t_scalar, std::size_t SIZE1, std::size_t SIZE2>
+class Matrix : public Tensor<t_scalar, SIZE1, SIZE2>
+{
+public:
+	using t_tensor = Tensor<t_scalar, SIZE1, SIZE2>;
+	using t_size = typename t_tensor::t_size;
+	using t_cont = typename t_tensor::t_cont;
+
+
+public:
+	constexpr Matrix(bool zero = true) noexcept
+		: t_tensor(zero)
+	{
+	}
+
+
+	~Matrix() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	constexpr Matrix(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of rows
+	 */
+	constexpr t_size size1() const noexcept
+	{
+		return t_tensor::template size<0>();
+	}
+
+
+	/**
+	 * number of columns
+	 */
+	constexpr t_size size2() const noexcept
+	{
+		return t_tensor::template size<1>();
+	}
+};
+// --------------------------------------------------------------------------------
 
 
 #endif

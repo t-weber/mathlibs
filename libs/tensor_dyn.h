@@ -91,8 +91,8 @@ public:
 	}
 
 
-	TensorDyn() = default;
-	~TensorDyn() = default;
+	TensorDyn() noexcept = default;
+	~TensorDyn() noexcept = default;
 
 
 	template<template<class...> class t_init = std::initializer_list>
@@ -134,7 +134,7 @@ public:
 	const TensorDyn& operator=(const TensorDyn<t_scalar, t_size, t_cont_templ>& other) noexcept
 	{
 		m_elems = other.m_elems;
-		m_sizes = other.m_sizes();
+		m_sizes = other.m_sizes;
 
 		return *this;
 	}
@@ -528,6 +528,76 @@ TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
 {
 	return tensor_prod<t_scalar, t_size, t_cont_templ>(t1, t2);
 }
+
+
+
+// --------------------------------------------------------------------------------
+/**
+ * matrix with dynamic size
+ */
+template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+class MatrixDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
+{
+public:
+	using t_tensor = TensorDyn<t_scalar, t_size, t_cont_templ>;
+	using t_cont = typename t_tensor::t_cont;
+
+
+public:
+	constexpr MatrixDyn(t_size rows, t_size cols) noexcept
+		: t_tensor({rows, cols})
+	{
+	}
+
+
+	~MatrixDyn() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	MatrixDyn(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of rows
+	 */
+	constexpr t_size size1() const noexcept
+	{
+		return t_tensor::size(0);
+	}
+
+
+	/**
+	 * number of columns
+	 */
+	constexpr t_size size2() const noexcept
+	{
+		return t_tensor::size(1);
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row, t_size col) noexcept
+	{
+		return t_tensor::operator()({row, col});
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row, t_size col) const noexcept
+	{
+		return t_tensor::operator()({row, col});
+	}
+};
+// --------------------------------------------------------------------------------
 
 
 #endif
