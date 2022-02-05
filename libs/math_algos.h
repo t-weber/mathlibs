@@ -3603,6 +3603,41 @@ requires is_vec<t_vec> && is_mat<t_mat>
 
 
 /**
+ * mirror matrix in homogeneous coordinates
+ */
+template<class t_mat, class t_vec>
+t_mat hom_mirror(const t_vec& axis, bool is_normalised=1)
+requires is_vec<t_vec> && is_mat<t_mat>
+{
+	t_mat mat = ortho_mirror_op<t_mat, t_vec>(axis, is_normalised);
+
+	t_mat mat_hom = unit<t_mat>(4,4);
+	m::convert<t_mat, t_mat>(mat_hom, mat);
+
+	// in case the matrix is statically sized and was already larger than 4x4
+	mat_hom(3, 3) = 1.;
+	return mat_hom;
+}
+
+
+/**
+ * mirror matrix in homogeneous coordinates with translation
+ */
+template<class t_mat, class t_vec>
+t_mat hom_mirror(const t_vec& axis, const t_vec& pos, bool is_normalised=1)
+requires is_vec<t_vec> && is_mat<t_mat>
+{
+	t_mat mirr = hom_mirror<t_mat, t_vec>(axis, is_normalised);
+
+	t_mat offs = hom_translation<t_mat, t_vec>(pos);
+	t_mat offs_inv = hom_translation<t_mat, t_vec>(-pos);
+	//t_mat offs_t = trans<t_mat>(offs);
+
+	return offs * mirr * offs_inv;
+}
+
+
+/**
  * "look at" matrix in homogeneous coordinates
  * @see (Sellers 2014), pp. 78-79
  * @see https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
@@ -3803,7 +3838,7 @@ requires is_mat<t_mat>
 	const t_real rr = std::sqrt(t_real{1} + t_real{2}*ca*cb*cc - (ca*ca + cb*cb + cc*cc));
 
 	return t_real{2}*pi<t_real> * create<t_mat>({
-		t_real{1}/a,				t_real{0},						t_real{0},
+		t_real{1}/a,			t_real{0},				t_real{0},
 		t_real{-1}/a * cc/sc,		t_real{1}/b * t_real{1}/sc,		t_real{0},
 		(cc*ca - cb)/(a*sc*rr), 	(cb*cc-ca)/(b*sc*rr),			sc/(c*rr)
 	});
@@ -3818,11 +3853,15 @@ template<class t_mat, class t_vec, class t_real = typename t_mat::value_type>
 t_mat A_matrix(t_real a, t_real b, t_real c, t_real _aa, t_real _bb, t_real _cc)
 requires is_mat<t_mat>
 {
+	// |vb> derived by rotating |va>
 	t_vec va = create<t_vec>({a, 0, 0});
 	t_vec vb = rotation<t_mat, t_vec>(create<t_vec>({0,0,1}), _cc, 1)*va * b/a;
 	t_vec vc = create<t_vec>(va.size());
 
-	// derived using dot products <va|vc>=cos(_bb), and <vb|vc>=cos(_aa)
+	// |vc> derived using dot products:
+	//   component (1) from <va|vc> = a*c*cos(_bb),
+	//   component (2) from <vb|vc> = b*c*cos(_aa),
+	//   component (3) from <vc|vc> = c*c
 	vc[0] = std::cos(_bb)*c;
 	vc[1] = (std::cos(_aa) * b*c - vb[0]*vc[0]) / vb[1];
 	vc[2] = t_real{0};

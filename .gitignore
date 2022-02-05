@@ -13,12 +13,13 @@
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Dynamic libraries
 *.so
+*.so.*
 *.dylib
 *.dll
 
-# Compiled Static libraries
+# Static libraries
 *.lai
 *.la
 *.a
