@@ -525,7 +525,8 @@ private:
 template<class t_scalar_1, std::size_t ...SIZES_1,
 	class t_scalar_2, std::size_t ...SIZES_2>
 constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
-tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
+	const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
 {
 	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
 	using t_tensor = Tensor<t_scalar, SIZES_1..., SIZES_2...>;
@@ -583,9 +584,10 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, S
  * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
  */
 template<class t_scalar_1, std::size_t ...SIZES_1,
-class t_scalar_2, std::size_t ...SIZES_2>
+	class t_scalar_2, std::size_t ...SIZES_2>
 constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
-operator*(const Tensor<t_scalar_1, SIZES_1...>& t1, const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+operator*(const Tensor<t_scalar_1, SIZES_1...>& t1,
+	const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
 {
 	return tensor_prod(t1, t2);
 }
@@ -641,6 +643,49 @@ public:
 		return t_tensor::template size<1>();
 	}
 };
+
+
+/**
+ * matrix product, M_ij = R_ik S_kj
+ */
+template<class t_scalar_1, class t_scalar_2,
+	std::size_t SIZEI, std::size_t SIZEJ, std::size_t SIZEK>
+constexpr Matrix<std::common_type_t<t_scalar_1, t_scalar_2>, SIZEI, SIZEJ>
+matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
+	const Matrix<t_scalar_2, SIZEK, SIZEJ>& S) noexcept
+{
+	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+	using t_M = Matrix<t_scalar, SIZEI, SIZEJ>;
+	using t_size = typename t_M::t_size;
+	t_M M;
+
+	for(t_size i=0; i<SIZEI; ++i)
+	{
+		for(t_size j=0; j<SIZEJ; ++j)
+		{
+			M(i, j) = t_scalar{0};
+
+			for(t_size k=0; k<SIZEK; ++k)
+				M(i, j) += R(i, k) * S(k, j);
+		}
+	}
+
+	return M;
+}
+
+
+/**
+ * matrix product, M_ij = R_ik S_kj
+ */
+template<class t_scalar_1, class t_scalar_2,
+	std::size_t SIZEI, std::size_t SIZEJ, std::size_t SIZEK>
+constexpr Matrix<std::common_type_t<t_scalar_1, t_scalar_2>, SIZEI, SIZEJ>
+operator*(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
+	const Matrix<t_scalar_2, SIZEK, SIZEJ>& S) noexcept
+{
+	return matrix_prod<t_scalar_1, t_scalar_2, SIZEI, SIZEJ, SIZEK>(R, S);
+}
+
 // --------------------------------------------------------------------------------
 
 

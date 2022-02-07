@@ -521,7 +521,8 @@ TensorDyn<t_scalar, t_size, t_cont_templ> tensor_prod(
  * tensor product
  * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
  */
-template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
 TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
 	const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
 	const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
@@ -535,7 +536,8 @@ TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
 /**
  * matrix with dynamic size
  */
-template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
 class MatrixDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
 {
 public:
@@ -597,6 +599,53 @@ public:
 		return t_tensor::operator()({row, col});
 	}
 };
+
+
+/**
+ * matrix product, M_ij = R_ik S_kj
+ */
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+template<class...> class t_cont_templ = std::vector>
+MatrixDyn<std::common_type_t<t_scalar_1, t_scalar_2>, t_size, t_cont_templ>
+matrix_prod(const MatrixDyn<t_scalar_1, t_size, t_cont_templ>& R,
+	const MatrixDyn<t_scalar_2, t_size, t_cont_templ>& S) noexcept
+{
+	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+
+	const t_size I = R.size1();
+	const t_size J = S.size2();
+	const t_size K = R.size2();
+
+	MatrixDyn<t_scalar, t_size, t_cont_templ> M{I, J};
+
+	for(t_size i=0; i<I; ++i)
+	{
+		for(t_size j=0; j<J; ++j)
+		{
+			M(i, j) = t_scalar{0};
+
+			for(t_size k=0; k<K; ++k)
+				M(i, j) += R(i, k) * S(k, j);
+		}
+	}
+
+	return M;
+
+}
+
+
+/**
+ * matrix product, M_ij = R_ik S_kj
+ */
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+MatrixDyn<std::common_type_t<t_scalar_1, t_scalar_2>, t_size, t_cont_templ>
+operator*(const MatrixDyn<t_scalar_1, t_size, t_cont_templ>& R,
+	const MatrixDyn<t_scalar_2, t_size, t_cont_templ>& S) noexcept
+{
+	return matrix_prod<t_scalar_1, t_scalar_2, t_size, t_cont_templ>(R, S);
+}
+
 // --------------------------------------------------------------------------------
 
 

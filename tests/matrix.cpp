@@ -30,12 +30,20 @@ void test_matrix()
 	m2(1,0) = 7; m2(1,1) = 6;
 
 	Matrix<t_real, 2, 2> m3 = m1 + m2;
-
-	std::cout << "elements:\n";
+	std::cout << "M1 + M2:\n";
 	for(std::size_t i=0; i<m3.size1(); ++i)
 	{
 		for(std::size_t j=0; j<m3.size2(); ++j)
 			std::cout << m3(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	Matrix<t_real, 2, 2> m4 = m1 * m2;
+	std::cout << "M1 * M2:\n";
+	for(std::size_t i=0; i<m4.size1(); ++i)
+	{
+		for(std::size_t j=0; j<m4.size2(); ++j)
+			std::cout << m4(i, j) << " ";
 		std::cout << std::endl;
 	}
 }
@@ -55,12 +63,20 @@ void test_matrix_dyn()
 	m2(1,0) = 7; m2(1,1) = 6;
 
 	MatrixDyn<t_real> m3 = m1 + m2;
-
-	std::cout << "elements:\n";
+	std::cout << "M1 + M2:\n";
 	for(std::size_t i=0; i<m3.size1(); ++i)
 	{
 		for(std::size_t j=0; j<m3.size2(); ++j)
 			std::cout << m3(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	MatrixDyn<t_real> m4 = m1 * m2;
+	std::cout << "M1 * M2:\n";
+	for(std::size_t i=0; i<m4.size1(); ++i)
+	{
+		for(std::size_t j=0; j<m4.size2(); ++j)
+			std::cout << m4(i, j) << " ";
 		std::cout << std::endl;
 	}
 }

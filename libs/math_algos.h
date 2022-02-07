@@ -274,65 +274,6 @@ requires is_mat<t_mat> && is_basic_vec<t_vec>
 
 
 /**
- * converts matrix containers of different value types
- */
-template<class t_mat_dst, class t_mat_src>
-t_mat_dst convert(const t_mat_src& mat)
-requires is_mat<t_mat_dst> && is_mat<t_mat_src>
-{
-	//using T_src = typename t_mat_src::value_type;
-	using T_dst = typename t_mat_dst::value_type;
-	using t_idx = decltype(mat.size1());
-
-	t_mat_dst matdst = create<t_mat_dst>(mat.size1(), mat.size2());
-
-	for(t_idx iRow=0; iRow<mat.size1(); ++iRow)
-		for(t_idx iCol=0; iCol<mat.size2(); ++iCol)
-			matdst(iRow, iCol) = T_dst(mat(iRow, iCol));
-
-	return matdst;
-}
-
-
-/**
- * converts matrix containers of different value types and possibly sizes
- */
-template<class t_mat_dst, class t_mat_src>
-void convert(t_mat_dst& mat_dst, const t_mat_src& mat_src)
-requires is_mat<t_mat_dst> && is_mat<t_mat_src>
-{
-	using T_dst = typename t_mat_dst::value_type;
-	using t_idx = decltype(mat_src.size1());
-
-	mat_dst = unit<t_mat_dst>(mat_dst.size1(), mat_dst.size2());
-
-	for(t_idx iRow=0; iRow<std::min(mat_src.size1(), mat_dst.size1()); ++iRow)
-		for(t_idx iCol=0; iCol<std::min(mat_src.size2(), mat_dst.size2()); ++iCol)
-			mat_dst(iRow, iCol) = T_dst(mat_src(iRow, iCol));
-}
-
-
-/**
- * converts vector containers of different value types
- */
-template<class t_vec_dst, class t_vec_src>
-t_vec_dst convert(const t_vec_src& vec)
-requires is_vec<t_vec_dst> && is_vec<t_vec_src>
-{
-	//using T_src = typename t_vec_src::value_type;
-	using T_dst = typename t_vec_dst::value_type;
-	using t_idx = decltype(vec.size());
-
-	t_vec_dst vecdst = create<t_vec_dst>(vec.size());
-
-	for(t_idx i=0; i<vec.size(); ++i)
-		vecdst[i] = T_dst(vec[i]);
-
-	return vecdst;
-}
-
-
-/**
  * converts a container of objects
  */
 template<class t_obj_dst, class t_obj_src, template<class...> class t_cont>
@@ -403,6 +344,65 @@ requires is_basic_quat<t_quat>
 {
 	static const t_quat quat(1, 0, 0, 0);
 	return quat;
+}
+
+
+/**
+ * converts matrix containers of different value types
+ */
+template<class t_mat_dst, class t_mat_src>
+t_mat_dst convert(const t_mat_src& mat)
+requires is_mat<t_mat_dst> && is_mat<t_mat_src>
+{
+	//using T_src = typename t_mat_src::value_type;
+	using T_dst = typename t_mat_dst::value_type;
+	using t_idx = decltype(mat.size1());
+
+	t_mat_dst matdst = create<t_mat_dst>(mat.size1(), mat.size2());
+
+	for(t_idx iRow=0; iRow<mat.size1(); ++iRow)
+		for(t_idx iCol=0; iCol<mat.size2(); ++iCol)
+			matdst(iRow, iCol) = T_dst(mat(iRow, iCol));
+
+	return matdst;
+}
+
+
+/**
+ * converts matrix containers of different value types and possibly sizes
+ */
+template<class t_mat_dst, class t_mat_src>
+void convert(t_mat_dst& mat_dst, const t_mat_src& mat_src)
+requires is_mat<t_mat_dst> && is_mat<t_mat_src>
+{
+	using T_dst = typename t_mat_dst::value_type;
+	using t_idx = decltype(mat_src.size1());
+
+	mat_dst = unit<t_mat_dst>(mat_dst.size1(), mat_dst.size2());
+
+	for(t_idx iRow=0; iRow<std::min(mat_src.size1(), mat_dst.size1()); ++iRow)
+		for(t_idx iCol=0; iCol<std::min(mat_src.size2(), mat_dst.size2()); ++iCol)
+			mat_dst(iRow, iCol) = T_dst(mat_src(iRow, iCol));
+}
+
+
+/**
+ * converts vector containers of different value types
+ */
+template<class t_vec_dst, class t_vec_src>
+t_vec_dst convert(const t_vec_src& vec)
+requires is_vec<t_vec_dst> && is_vec<t_vec_src>
+{
+	//using T_src = typename t_vec_src::value_type;
+	using T_dst = typename t_vec_dst::value_type;
+	using t_idx = decltype(vec.size());
+
+	t_vec_dst vecdst = create<t_vec_dst>(vec.size());
+
+	for(t_idx i=0; i<vec.size(); ++i)
+		vecdst[i] = T_dst(vec[i]);
+
+	return vecdst;
 }
 
 
