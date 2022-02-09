@@ -708,23 +708,20 @@ matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 	{
 		for(t_size j=0; j<SIZEJ; ++j)
 		{
-			M(i, j) = t_scalar{0};
-
 			// ------------------
 			// inner loop over k
 			// ------------------
 			// using dynamic loop
 #ifdef __TENSOR_USE_DYN_LOOPS__
+			M(i, j) = t_scalar{0};
+
 			for(t_size k=0; k<SIZEK; ++k)
 				M(i, j) += R(i, k) * S(k, j);
 #else
 			// using unrolled statically-sized loop
 			[&M, &R, &S, i, j]<t_size ...k>(const std::integer_sequence<t_size, k...>&) -> void
 			{
-				( [&M, &R, &S, i, j]() -> void
-					{
-						M(i, j) += R(i, k) * S(k, j);
-				}(), ...);
+				M(i, j) = ((R(i, k) * S(k, j)) + ...);
 			}(std::make_integer_sequence<t_size, SIZEK>());
 #endif
 			// ------------------
