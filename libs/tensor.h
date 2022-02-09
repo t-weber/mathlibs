@@ -17,6 +17,10 @@
 #include "variadic_algos.h"
 
 
+// TODO: compare performance of statically sized, unrolled loops to dynamic loops
+//#define __TENSOR_USE_DYN_LOOPS__
+
+
 /**
  * tensor with static size
  */
@@ -89,9 +93,10 @@ public:
 	/**
 	 * get the total number of elements
 	 */
-	constexpr t_size size() const noexcept
+	static constexpr t_size size() noexcept
 	{
-		return m_elems.size();
+		// return m_elems.size();
+		return mult_args<t_size>(SIZES...);
 	}
 
 
@@ -219,8 +224,8 @@ public:
 	template<class ...t_dims>
 	constexpr t_scalar& get(const t_dims&... dims) noexcept
 	{
-		const std::array<std::size_t, sizeof...(SIZES)>
-			dims_arr{{static_cast<std::size_t>(dims)...}};
+		const std::array<t_size, sizeof...(SIZES)>
+			dims_arr{{static_cast<t_size>(dims)...}};
 		const t_size idx = ::get_linear_index<SIZES...>(dims_arr);
 
 		return operator[](idx);
@@ -390,8 +395,18 @@ public:
 		using t_size = decltype(t.size());
 		Tensor<t_scalar, SIZES...> t2;
 
+#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t.size(); ++i)
 			t2[i] = -t[i];
+#else
+		[&t, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
+		{
+			( [&t, &t2]() -> void
+			{
+				t2[i] = -t[i];
+			}(), ...);
+		}(std::make_integer_sequence<t_size, /*t.size()*/ Tensor<t_scalar, SIZES...>::size()>());
+#endif
 
 		return t2;
 	}
@@ -406,8 +421,18 @@ public:
 		using t_size = decltype(t1.size());
 		Tensor<t_scalar, SIZES...> tret;
 
+#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] + t2[i];
+#else
+		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
+		{
+			( [&tret, &t1, &t2]() -> void
+			{
+				tret[i] = t1[i] + t2[i];
+			}(), ...);
+		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
+#endif
 
 		return tret;
 	}
@@ -422,8 +447,18 @@ public:
 		using t_size = decltype(t1.size());
 		Tensor<t_scalar, SIZES...> tret;
 
+#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] - t2[i];
+#else
+		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
+		{
+			( [&tret, &t1, &t2]() -> void
+			{
+				tret[i] = t1[i] - t2[i];
+			}(), ...);
+		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
+#endif
 
 		return tret;
 	}
@@ -438,8 +473,18 @@ public:
 		using t_size = decltype(t1.size());
 		Tensor<t_scalar, SIZES...> tret;
 
+#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] * s;
+#else
+		[&tret, &t1, &s]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
+		{
+			( [&tret, &t1, &s]() -> void
+			{
+				tret[i] = t1[i] * s;
+			}(), ...);
+		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
+#endif
 
 		return tret;
 	}
@@ -665,8 +710,24 @@ matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 		{
 			M(i, j) = t_scalar{0};
 
+			// ------------------
+			// inner loop over k
+			// ------------------
+			// using dynamic loop
+#ifdef __TENSOR_USE_DYN_LOOPS__
 			for(t_size k=0; k<SIZEK; ++k)
 				M(i, j) += R(i, k) * S(k, j);
+#else
+			// using unrolled statically-sized loop
+			[&M, &R, &S, i, j]<t_size ...k>(const std::integer_sequence<t_size, k...>&) -> void
+			{
+				( [&M, &R, &S, i, j]() -> void
+					{
+						M(i, j) += R(i, k) * S(k, j);
+				}(), ...);
+			}(std::make_integer_sequence<t_size, SIZEK>());
+#endif
+			// ------------------
 		}
 	}
 
