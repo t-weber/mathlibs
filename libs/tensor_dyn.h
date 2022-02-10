@@ -28,6 +28,7 @@ class TensorDyn
 public:
 	using t_cont = t_cont_templ<t_scalar>;
 	using t_cont_sizes = t_cont_templ<t_size>;
+	using value_type = t_scalar;
 
 
 protected:
@@ -543,6 +544,7 @@ class MatrixDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
 public:
 	using t_tensor = TensorDyn<t_scalar, t_size, t_cont_templ>;
 	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
 
 
 public:
@@ -644,6 +646,107 @@ operator*(const MatrixDyn<t_scalar_1, t_size, t_cont_templ>& R,
 	const MatrixDyn<t_scalar_2, t_size, t_cont_templ>& S) noexcept
 {
 	return matrix_prod<t_scalar_1, t_scalar_2, t_size, t_cont_templ>(R, S);
+}
+
+// --------------------------------------------------------------------------------
+
+
+
+// --------------------------------------------------------------------------------
+/**
+ * vector with dynamic size
+ */
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class VectorDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
+{
+public:
+	using t_tensor = TensorDyn<t_scalar, t_size, t_cont_templ>;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
+
+
+public:
+	constexpr VectorDyn(t_size rows) noexcept : t_tensor({rows})
+	{
+	}
+
+
+	~VectorDyn() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	VectorDyn(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of elements
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_tensor::size(0);
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row) noexcept
+	{
+		return t_tensor::operator()({row});
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row) const noexcept
+	{
+		return t_tensor::operator()({row});
+	}
+};
+
+
+/**
+ * inner product, s = v_i w_i
+ */
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+std::common_type_t<t_scalar_1, t_scalar_2>
+inner_prod(const VectorDyn<t_scalar_1, t_size, t_cont_templ>& v,
+	const VectorDyn<t_scalar_2, t_size, t_cont_templ>& w) noexcept
+{
+	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+
+	const t_size I = v.size();
+	const t_size J = w.size();
+	assert(I == J);
+
+	t_scalar s = t_scalar(0);
+
+	for(t_size i=0; i<I; ++i)
+		s += v[i]*w[i];
+
+	return s;
+
+}
+
+
+/**
+ * inner product, s = v_i w_i
+ */
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+std::common_type_t<t_scalar_1, t_scalar_2>
+operator*(const VectorDyn<t_scalar_1, t_size, t_cont_templ>& v,
+	const VectorDyn<t_scalar_2, t_size, t_cont_templ>& w) noexcept
+{
+	return inner_prod<t_scalar_1, t_scalar_2, t_size, t_cont_templ>(v, w);
 }
 
 // --------------------------------------------------------------------------------

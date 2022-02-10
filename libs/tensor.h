@@ -30,6 +30,7 @@ class Tensor
 public:
 	using t_size = std::size_t;
 	using t_cont = std::array<t_scalar, mult_args<t_size>(SIZES...)>;
+	using value_type = t_scalar;
 
 
 public:
@@ -650,6 +651,7 @@ public:
 	using t_tensor = Tensor<t_scalar, SIZE1, SIZE2>;
 	using t_size = typename t_tensor::t_size;
 	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
 
 
 public:
@@ -702,6 +704,7 @@ matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
 	using t_M = Matrix<t_scalar, SIZEI, SIZEJ>;
 	using t_size = typename t_M::t_size;
+
 	t_M M;
 
 	for(t_size i=0; i<SIZEI; ++i)
@@ -742,6 +745,95 @@ operator*(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 	const Matrix<t_scalar_2, SIZEK, SIZEJ>& S) noexcept
 {
 	return matrix_prod<t_scalar_1, t_scalar_2, SIZEI, SIZEJ, SIZEK>(R, S);
+}
+
+// --------------------------------------------------------------------------------
+
+
+
+// --------------------------------------------------------------------------------
+/**
+ * vector with static size
+ */
+template<class t_scalar, std::size_t SIZE>
+class Vector : public Tensor<t_scalar, SIZE>
+{
+public:
+	using t_tensor = Tensor<t_scalar, SIZE>;
+	using t_size = typename t_tensor::t_size;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
+
+
+public:
+	constexpr Vector(bool zero = true) noexcept
+		: t_tensor(zero)
+	{
+	}
+
+
+	~Vector() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	constexpr Vector(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of rows
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_tensor::template size<0>();
+	}
+};
+
+
+/**
+ * inner product, s = v_i w_i
+ */
+template<class t_scalar_1, class t_scalar_2, std::size_t SIZE>
+constexpr std::common_type_t<t_scalar_1, t_scalar_2>
+inner_prod(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) noexcept
+{
+	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+	using t_V = Vector<t_scalar, SIZE>;
+	using t_size = typename t_V::t_size;
+
+	t_scalar s;
+
+	// using dynamic loop
+#ifdef __TENSOR_USE_DYN_LOOPS__
+	s = t_scalar{0};
+
+	for(t_size i=0; i<SIZE; ++i)
+		s += v[i] * w[i];
+#else
+	// using unrolled statically-sized loop
+	[&s, &v, &w]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
+	{
+		s = ((v[i] * w[i]) + ...);
+	}(std::make_integer_sequence<t_size, SIZE>());
+#endif
+	// ------------------
+
+	return s;
+}
+
+
+/**
+ * inner product, s = v_i w_i
+ */
+template<class t_scalar_1, class t_scalar_2, std::size_t SIZE>
+constexpr std::common_type_t<t_scalar_1, t_scalar_2>
+operator*(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) noexcept
+{
+	return inner_prod<t_scalar_1, t_scalar_2, SIZE>(v, w);
 }
 
 // --------------------------------------------------------------------------------
