@@ -75,6 +75,35 @@ void test_vector()
 }
 
 
+void test_row_col_vector()
+{
+	std::cout << "\n" << __func__ << std::endl;
+
+	ColVector<t_real, 3> v1{};
+	RowVector<t_real, 3> v2{};
+	std::cout << "dim: " << v1.size() << " " << std::endl;
+
+	v1[0] = 1;
+	v1[1] = 2;
+	v1[2] = 3;
+
+	v2[0] = 7;
+	v2[1] = 8;
+	v2[2] = 9;
+
+	ColVector<t_real, 3> v3 = v1 + v1;
+	std::cout << "v1 + v1:\n";
+	for(std::size_t i=0; i<v3.size(); ++i)
+		std::cout << v3[i] << " ";
+	std::cout << std::endl;
+
+	t_real s = v1 * v2;
+	std::cout << "v1 * v2 = " << s << std::endl;
+
+	//v2 = v1.transpose();
+}
+
+
 void test_matrix_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
@@ -134,13 +163,53 @@ void test_vector_dyn()
 }
 
 
+void test_row_col_vector_dyn()
+{
+	std::cout << "\n" << __func__ << std::endl;
+
+	ColVectorDyn<t_real> v1{3};
+	RowVectorDyn<t_real> v2{3};
+	std::cout << "dim: " << v1.size() << " " << std::endl;
+
+	v1[0] = 1;
+	v1[1] = 2;
+	v1[2] = 3;
+
+	v2[0] = 7;
+	v2[1] = 8;
+	v2[2] = 9;
+
+	ColVectorDyn<t_real> v3 = v1 + v1;
+	std::cout << "v1 + v1:\n";
+	for(std::size_t i=0; i<v3.size(); ++i)
+		std::cout << v3[i] << " ";
+	std::cout << std::endl;
+
+	t_real s = v1 * v2;
+	std::cout << "v1 * v2 = " << s << std::endl;
+
+	v2 = v1.transpose();
+}
+
+
 int main()
 {
-	test_matrix();
-	test_matrix_dyn();
+	try
+	{
+		test_matrix();
+		test_matrix_dyn();
 
-	test_vector();
-	test_vector_dyn();
+		test_vector();
+		test_vector_dyn();
+
+		test_row_col_vector();
+		test_row_col_vector_dyn();
+	}
+	catch(const std::exception& ex)
+	{
+		std::cerr << ex.what() << std::endl;
+		return -1;
+	}
 
 	return 0;
 }

@@ -259,6 +259,19 @@ public:
 	{
 		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->operator()<t_init>(dims);
 	}
+
+
+	/**
+	 * if the tensor contains just one element, allow conversion to scalar
+	 */
+	constexpr operator t_scalar() const
+	{
+		if(size() == 1)
+			return operator[](0);
+		else
+			throw std::logic_error("Invalid tensor -> scalar conversion.");
+		return 0;
+	}
 	// ------------------------------------------------------------------------
 
 
@@ -554,6 +567,9 @@ public:
 	}
 
 
+	MatrixDyn() noexcept = default;
+
+
 	~MatrixDyn() noexcept = default;
 
 
@@ -599,6 +615,23 @@ public:
 	const t_scalar& operator()(t_size row, t_size col) const noexcept
 	{
 		return t_tensor::operator()({row, col});
+	}
+
+
+	/**
+	 * get the transposed matrix
+	 */
+	MatrixDyn transpose() const noexcept
+	{
+		MatrixDyn<t_scalar, t_size, t_cont_templ> mat{size2(), size1()};
+
+		for(t_size i=0; i<size1(); ++i)
+		{
+			for(t_size j=0; j<size2(); ++j)
+				mat(j, i) = (*this)(i, j);
+		}
+
+		return mat;
 	}
 };
 
@@ -751,5 +784,155 @@ operator*(const VectorDyn<t_scalar_1, t_size, t_cont_templ>& v,
 
 // --------------------------------------------------------------------------------
 
+
+
+// --------------------------------------------------------------------------------
+/**
+ * row vector with dynamic size
+ */
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class RowVectorDyn : public MatrixDyn<t_scalar, t_size, t_cont_templ>
+{
+public:
+	using t_matrix = MatrixDyn<t_scalar, t_size, t_cont_templ>;
+	using t_tensor = typename t_matrix::t_tensor;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
+
+
+public:
+	constexpr RowVectorDyn(t_size rows) noexcept : t_matrix(rows, 1)
+	{
+	}
+
+
+	~RowVectorDyn() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	RowVectorDyn(const t_tensor& other)
+	{
+		this->operator=(other);
+	}
+
+
+	/**
+	 * assignment from tensor super class
+	 */
+	const RowVectorDyn& operator=(const t_tensor& other)
+	{
+		if(other.size(1) != 1)
+			throw std::logic_error("Invalid conversion to row vector.");
+
+		t_tensor::operator=(other);
+		return *this;
+	}
+
+
+	/**
+	 * number of elements
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_matrix::size1();
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row) noexcept
+	{
+		return t_matrix::operator()(row, 1);
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row) const noexcept
+	{
+		return t_matrix::operator()(row, 1);
+	}
+};
+
+
+
+/**
+ * column vector with dynamic size
+ */
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class ColVectorDyn : public MatrixDyn<t_scalar, t_size, t_cont_templ>
+{
+public:
+	using t_matrix = MatrixDyn<t_scalar, t_size, t_cont_templ>;
+	using t_tensor = typename t_matrix::t_tensor;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
+
+
+public:
+	constexpr ColVectorDyn(t_size cols) noexcept : t_matrix(1, cols)
+	{
+	}
+
+
+	~ColVectorDyn() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	ColVectorDyn(const t_tensor& other)
+	{
+		this->operator=(other);
+	}
+
+
+	/**
+	 * assignment from tensor super class
+	 */
+	const ColVectorDyn& operator=(const t_tensor& other)
+	{
+		if(other.size(0) != 1)
+			throw std::logic_error("Invalid conversion to column vector.");
+
+		t_tensor::operator=(other);
+		return *this;
+	}
+
+
+	/**
+	 * number of elements
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_matrix::size2();
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size col) noexcept
+	{
+		return t_matrix::operator()(1, col);
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size col) const noexcept
+	{
+		return t_matrix::operator()(1, col);
+	}
+};
+
+// --------------------------------------------------------------------------------
 
 #endif

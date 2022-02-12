@@ -21,6 +21,15 @@
 //#define __TENSOR_USE_DYN_LOOPS__
 
 
+// --------------------------------------------------------------------------------
+// helpers
+// --------------------------------------------------------------------------------
+template<class t_val, t_val val, class t_dummy = void>
+constexpr const t_val static_value = val;
+// --------------------------------------------------------------------------------
+
+
+
 /**
  * tensor with static size
  */
@@ -176,6 +185,19 @@ public:
 	constexpr const t_scalar& operator()() const noexcept
 	{
 		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator()<DIMS...>();
+	}
+
+
+	/**
+	 * if the tensor contains just one element, allow conversion to scalar
+	 */
+	constexpr operator t_scalar() const noexcept
+	{
+		if constexpr (size() == 1)
+			return operator[](0);
+		else
+			static_assert(static_value<bool, false, t_scalar>, "Invalid tensor -> scalar conversion.");
+		return 0;
 	}
 	// ------------------------------------------------------------------------
 
@@ -689,6 +711,35 @@ public:
 	{
 		return t_tensor::template size<1>();
 	}
+
+
+	/**
+	 * get the transposed matrix
+	 */
+	constexpr Matrix<t_scalar, SIZE2, SIZE1> transpose() const noexcept
+	{
+		using t_mat_transp = Matrix<t_scalar, SIZE2, SIZE1>;
+
+		t_mat_transp mat;
+
+		for(t_size i=0; i<SIZE1; ++i)
+		{
+#ifdef __TENSOR_USE_DYN_LOOPS__
+			for(t_size j=0; j<SIZE2; ++j)
+				mat(j, i) = (*this)(i, j);
+#else
+			[&mat, i, this]<t_size ...j>(const std::integer_sequence<t_size, j...>&) -> void
+			{
+				( [&mat, i, this]() -> void
+				{
+					mat(j, i) = (*this)(i, j);
+				}(), ...);
+			}(std::make_integer_sequence<t_size, SIZE2>());
+#endif
+		}
+
+		return mat;
+	}
 };
 
 
@@ -838,5 +889,95 @@ operator*(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) 
 
 // --------------------------------------------------------------------------------
 
+
+
+// --------------------------------------------------------------------------------
+/**
+ * row vector with static size
+ */
+template<class t_scalar, std::size_t SIZE>
+class RowVector : public Matrix<t_scalar, SIZE, 1>
+{
+public:
+	using t_matrix = Matrix<t_scalar, SIZE, 1>;
+	using t_tensor = typename Matrix<t_scalar, SIZE, 1>::t_tensor;
+	using t_size = typename t_matrix::t_size;
+	using t_cont = typename t_matrix::t_cont;
+	using value_type = typename t_matrix::value_type;
+
+
+public:
+	constexpr RowVector(bool zero = true) noexcept
+		: t_matrix(zero)
+	{
+	}
+
+
+	~RowVector() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	constexpr RowVector(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of rows
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_matrix::size1();
+	}
+};
+
+
+
+/**
+ * column vector with static size
+ */
+template<class t_scalar, std::size_t SIZE>
+class ColVector : public Matrix<t_scalar, 1, SIZE>
+{
+public:
+	using t_matrix = Matrix<t_scalar, 1, SIZE>;
+	using t_tensor = typename Matrix<t_scalar, 1, SIZE>::t_tensor;
+	using t_size = typename t_matrix::t_size;
+	using t_cont = typename t_matrix::t_cont;
+	using value_type = typename t_matrix::value_type;
+
+
+public:
+	constexpr ColVector(bool zero = true) noexcept
+	: t_matrix(zero)
+	{
+	}
+
+
+	~ColVector() noexcept = default;
+
+
+	/**
+	 * copy constructor from tensor super class
+	 */
+	constexpr ColVector(const t_tensor& other) noexcept
+	{
+		t_tensor::operator=(other);
+	}
+
+
+	/**
+	 * number of rows
+	 */
+	constexpr t_size size() const noexcept
+	{
+		return t_matrix::size2();
+	}
+};
+
+// --------------------------------------------------------------------------------
 
 #endif
