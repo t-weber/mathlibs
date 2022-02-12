@@ -197,7 +197,8 @@ public:
 	 */
 	const t_scalar& get_lin(t_size i) const noexcept
 	{
-		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->get_lin(i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get_lin(i);
 	}
 
 
@@ -206,7 +207,8 @@ public:
 	 */
 	t_scalar& operator[](t_size i) noexcept
 	{
-		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->get_lin(i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get_lin(i);
 	}
 
 
@@ -215,7 +217,8 @@ public:
 	 */
 	const t_scalar& operator[](t_size i) const noexcept
 	{
-		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->operator[](i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->operator[](i);
 	}
 
 
@@ -237,7 +240,8 @@ public:
 	template<template<class...> class t_init = std::initializer_list>
 	const t_scalar& get(const t_init<t_size>& dims) const noexcept
 	{
-		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->get<t_init>(dims);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get<t_init>(dims);
 	}
 
 
@@ -257,14 +261,15 @@ public:
 	template<template<class...> class t_init = std::initializer_list>
 	const t_scalar& operator()(const t_init<t_size>& dims) const noexcept
 	{
-		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>(this)->operator()<t_init>(dims);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->operator()<t_init>(dims);
 	}
 
 
 	/**
 	 * if the tensor contains just one element, allow conversion to scalar
 	 */
-	constexpr operator t_scalar() const
+	operator t_scalar() const
 	{
 		if(size() == 1)
 			return operator[](0);
@@ -561,15 +566,12 @@ public:
 
 
 public:
-	constexpr MatrixDyn(t_size rows, t_size cols) noexcept
+	MatrixDyn(t_size rows, t_size cols) noexcept
 		: t_tensor({rows, cols})
-	{
-	}
+	{}
 
 
 	MatrixDyn() noexcept = default;
-
-
 	~MatrixDyn() noexcept = default;
 
 
@@ -585,7 +587,7 @@ public:
 	/**
 	 * number of rows
 	 */
-	constexpr t_size size1() const noexcept
+	t_size size1() const noexcept
 	{
 		return t_tensor::size(0);
 	}
@@ -594,7 +596,7 @@ public:
 	/**
 	 * number of columns
 	 */
-	constexpr t_size size2() const noexcept
+	t_size size2() const noexcept
 	{
 		return t_tensor::size(1);
 	}
@@ -700,11 +702,11 @@ public:
 
 
 public:
-	constexpr VectorDyn(t_size rows) noexcept : t_tensor({rows})
-	{
-	}
+	VectorDyn(t_size rows) noexcept : t_tensor({rows})
+	{}
 
 
+	VectorDyn() noexcept = default;
 	~VectorDyn() noexcept = default;
 
 
@@ -720,7 +722,7 @@ public:
 	/**
 	 * number of elements
 	 */
-	constexpr t_size size() const noexcept
+	t_size size() const noexcept
 	{
 		return t_tensor::size(0);
 	}
@@ -802,11 +804,19 @@ public:
 
 
 public:
-	constexpr RowVectorDyn(t_size rows) noexcept : t_matrix(rows, 1)
+	RowVectorDyn(t_size rows) noexcept : t_matrix(rows, 1)
+	{}
+
+
+	RowVectorDyn(t_size rows, t_size cols)
+		: t_matrix(rows, 1)
 	{
+		if(cols != 1)
+			throw std::logic_error("Invalid construction of row vector.");
 	}
 
 
+	RowVectorDyn() noexcept = default;
 	~RowVectorDyn() noexcept = default;
 
 
@@ -835,7 +845,7 @@ public:
 	/**
 	 * number of elements
 	 */
-	constexpr t_size size() const noexcept
+	t_size size() const noexcept
 	{
 		return t_matrix::size1();
 	}
@@ -846,7 +856,7 @@ public:
 	 */
 	t_scalar& operator()(t_size row) noexcept
 	{
-		return t_matrix::operator()(row, 1);
+		return t_matrix::operator()(row, 0);
 	}
 
 
@@ -855,7 +865,7 @@ public:
 	 */
 	const t_scalar& operator()(t_size row) const noexcept
 	{
-		return t_matrix::operator()(row, 1);
+		return t_matrix::operator()(row, 0);
 	}
 };
 
@@ -876,11 +886,20 @@ public:
 
 
 public:
-	constexpr ColVectorDyn(t_size cols) noexcept : t_matrix(1, cols)
+	ColVectorDyn(t_size cols) noexcept
+		: t_matrix(1, cols)
+	{}
+
+
+	ColVectorDyn(t_size rows, t_size cols)
+		: t_matrix(1, cols)
 	{
+		if(rows != 1)
+			throw std::logic_error("Invalid construction of column vector.");
 	}
 
 
+	ColVectorDyn() noexcept = default;
 	~ColVectorDyn() noexcept = default;
 
 
@@ -909,7 +928,7 @@ public:
 	/**
 	 * number of elements
 	 */
-	constexpr t_size size() const noexcept
+	t_size size() const noexcept
 	{
 		return t_matrix::size2();
 	}
@@ -920,7 +939,7 @@ public:
 	 */
 	t_scalar& operator()(t_size col) noexcept
 	{
-		return t_matrix::operator()(1, col);
+		return t_matrix::operator()(0, col);
 	}
 
 
@@ -929,7 +948,7 @@ public:
 	 */
 	const t_scalar& operator()(t_size col) const noexcept
 	{
-		return t_matrix::operator()(1, col);
+		return t_matrix::operator()(0, col);
 	}
 };
 

@@ -77,7 +77,7 @@ void test_tensor()
 
 	t2(0, 1) = -1;
 
-	t1 += 2*t2;
+	t1 += 2.*t2;
 
 	std::cout << "elements: ";
 	for(std::size_t i=0; i<t1.size(); ++i)
@@ -116,7 +116,7 @@ void test_tensor_dyn()
 
 	t2({0, 1}) = -1;
 
-	t1 += 2*t2;
+	t1 += 2.*t2;
 
 	std::cout << "elements: ";
 	for(std::size_t i=0; i<t1.size(); ++i)

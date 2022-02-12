@@ -241,7 +241,7 @@ requires is_vec<t_vec>
  * create a matrix with given sizes if it is dynamic
  */
 template<class t_mat>
-t_mat create(decltype(t_mat{}.size1()) size1, decltype(t_mat{}.size1()) size2)
+t_mat create(decltype(t_mat{}.size1()) size1, decltype(t_mat{}.size2()) size2)
 requires is_mat<t_mat>
 {
 	t_mat mat;
