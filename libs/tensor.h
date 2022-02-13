@@ -1,5 +1,5 @@
 /**
- * statically sizes tensor class
+ * dynamically sized tensor class
  * @author Tobias Weber (ident: 486fbae61c79af61ae9217361601098d7dd367380692f116995b0b81ab3b3407)
  * @date November 2021
  * @license see 'LICENSE' file
@@ -9,54 +9,118 @@
  * 	- (Bronstein08): I. N. Bronstein et al., ISBN: 978-3-8171-2017-8 (2008) [in its paperback version].
  */
 
-#ifndef __TENSOR_STAT_H__
-#define __TENSOR_STAT_H__
+#ifndef __TENSOR_DYN_H__
+#define __TENSOR_DYN_H__
 
-#include <array>
+#include <vector>
+//#include <valarray>
+#include <algorithm>
+#include <numeric>
+#include <cassert>
 
-#include "variadic_algos.h"
+#include "math_algos.h"
 
 
-// TODO: compare performance of statically sized, unrolled loops to dynamic loops
-//#define __TENSOR_USE_DYN_LOOPS__
-
-
-// --------------------------------------------------------------------------------
-// helpers
-// --------------------------------------------------------------------------------
-template<class t_val, t_val val, class t_dummy = void>
-constexpr const t_val static_value = val;
-// --------------------------------------------------------------------------------
-
+// math namespace
+namespace m {
 
 
 /**
- * tensor with static size
+ * tensor with dynamic size
  */
-template<class t_scalar, std::size_t ...SIZES>
-class Tensor
+template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+class TensorDyn
 {
 public:
-	using t_size = std::size_t;
-	using t_cont = std::array<t_scalar, mult_args<t_size>(SIZES...)>;
+	using t_cont = t_cont_templ<t_scalar>;
+	using t_cont_sizes = t_cont_templ<t_size>;
 	using value_type = t_scalar;
 
 
-public:
-	constexpr Tensor(bool zero = true) noexcept
+protected:
+	/**
+	 * get a linear index to a multi-dimensional array with the given sizes
+	 */
+	t_size get_linear_index(const t_cont_sizes& dims) const noexcept
 	{
-		if(zero)
-			set_zero<t_cont>(m_elems);
+		assert(m_sizes.size() == dims.size());
+
+		const t_size rank = order();
+
+		if(rank == 0)
+			return 0;
+		else if(rank == 1)
+			return dims[0];
+		else
+		{
+			t_size idx = 0;
+
+			for(t_size i=0; i<rank-1; ++i)
+			{
+				t_size size = 1;
+				for(t_size j=i+1; j<rank; ++j)
+					size *= m_sizes[j];
+				idx += dims[i] * size;
+			}
+
+			idx += dims[rank-1];
+
+			return idx;
+		}
+
+		return 0;
 	}
 
 
-	~Tensor() noexcept = default;
+	/**
+	 * convert a linear index to an array index
+	 */
+	t_cont_sizes get_array_index(t_size idx) const
+	{
+		t_cont_sizes arridx{};
+		arridx.resize(order(), 0);
+
+		for(int i=(int)order()-1; i>=0; --i)
+		{
+			arridx[i] = idx % m_sizes[i];
+			idx /= m_sizes[i];
+		}
+
+		return arridx;
+	}
+
+
+public:
+	template<template<class...> class t_init = std::initializer_list>
+	TensorDyn(const t_init<t_size>& sizes) noexcept
+	{
+		SetSizes(sizes);
+	}
+
+
+	TensorDyn() noexcept = default;
+	~TensorDyn() noexcept = default;
+
+
+	template<template<class...> class t_init = std::initializer_list>
+	void SetSizes(const t_init<t_size>& sizes) noexcept
+	{
+		m_sizes = sizes;
+		t_size m_lin_size = std::reduce(std::begin(m_sizes), std::end(m_sizes), 1, std::multiplies<t_size>{});
+		m_elems.resize(m_lin_size, 0);
+	}
+
+
+	const t_cont_sizes& GetSizes() const noexcept
+	{
+		return m_sizes;
+	}
 
 
 	/**
 	 * copy constructor
 	 */
-	constexpr Tensor(const Tensor<t_scalar, SIZES...>& other) noexcept
+	TensorDyn(const TensorDyn<t_scalar, t_size, t_cont_templ>& other) noexcept
 	{
 		operator=(other);
 	}
@@ -65,18 +129,20 @@ public:
 	/**
 	 * move constructor
 	 */
-	constexpr Tensor(Tensor<t_scalar, SIZES...>&& other) noexcept
+	TensorDyn(TensorDyn<t_scalar, t_size, t_cont_templ>&& other) noexcept
 	{
-		operator=(std::forward<Tensor<t_scalar, SIZES...>&&>(other));
+		operator=(std::forward<TensorDyn<t_scalar, t_size, t_cont_templ>&&>(other));
 	}
 
 
 	/**
 	 * assignment
 	 */
-	constexpr const Tensor& operator=(const Tensor<t_scalar, SIZES...>& other) noexcept
+	const TensorDyn& operator=(const TensorDyn<t_scalar, t_size, t_cont_templ>& other) noexcept
 	{
 		m_elems = other.m_elems;
+		m_sizes = other.m_sizes;
+
 		return *this;
 	}
 
@@ -84,9 +150,11 @@ public:
 	/**
 	 * movement
 	 */
-	constexpr const Tensor& operator=(Tensor<t_scalar, SIZES...>&& other) noexcept
+	const TensorDyn& operator=(TensorDyn<t_scalar, t_size, t_cont_templ>&& other) noexcept
 	{
 		m_elems = std::forward<t_cont&&>(other.m_elems);
+		m_sizes = std::forward<t_cont_sizes&&>(other.m_sizes);
+
 		return *this;
 	}
 
@@ -94,112 +162,28 @@ public:
 	/**
 	 * get the tensor rank
 	 */
-	static constexpr t_size order() noexcept
+	t_size order() const noexcept
 	{
-		return sizeof...(SIZES);
+		return m_sizes.size();
 	}
 
 
 	/**
 	 * get the total number of elements
 	 */
-	static constexpr t_size size() noexcept
+	t_size size() const noexcept
 	{
-		// return m_elems.size();
-		return mult_args<t_size>(SIZES...);
+		return m_elems.size();
 	}
 
 
 	/**
 	 * get the number of elements at a given position
 	 */
-	template<t_size i>
-	static constexpr t_size size() noexcept
+	t_size size(t_size i) const noexcept
 	{
-		return get_arg_i<i>(SIZES...);
+		return m_sizes[i];
 	}
-
-
-	// ------------------------------------------------------------------------
-	// static element access
-	// ------------------------------------------------------------------------
-	/**
-	 * linear element access
-	 */
-	template<t_size I>
-	constexpr t_scalar& get_lin() noexcept
-	{
-		return m_elems[I];
-	}
-
-
-	/**
-	 * linear element access
-	 */
-	template<t_size I>
-	constexpr const t_scalar& get_lin() const noexcept
-	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin<I>();
-	}
-
-
-	/**
-	 * element access
-	 */
-	template<t_size... DIMS>
-	constexpr t_scalar& get() noexcept
-	{
-		constexpr const t_size idx =
-			::get_linear_index(
-				std::index_sequence<SIZES...>(),
-				std::index_sequence<DIMS...>());
-
-		return get_lin<idx>();
-	}
-
-
-	/**
-	 * element access
-	 */
-	template<t_size... DIMS>
-	constexpr const t_scalar& get() const noexcept
-	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get<DIMS...>();
-	}
-
-
-	/**
-	 * element access
-	 */
-	template<t_size... DIMS>
-	constexpr t_scalar& operator()() noexcept
-	{
-		return get<DIMS...>();
-	}
-
-
-	/**
-	 * element access
-	 */
-	template<t_size... DIMS>
-	constexpr const t_scalar& operator()() const noexcept
-	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator()<DIMS...>();
-	}
-
-
-	/**
-	 * if the tensor contains just one element, allow conversion to scalar
-	 */
-	constexpr operator t_scalar() const noexcept
-	{
-		if constexpr (size() == 1)
-			return operator[](0);
-		else
-			static_assert(static_value<bool, false, t_scalar>, "Invalid tensor -> scalar conversion.");
-		return 0;
-	}
-	// ------------------------------------------------------------------------
 
 
 	// ------------------------------------------------------------------------
@@ -208,7 +192,7 @@ public:
 	/**
 	 * linear element access
 	 */
-	constexpr t_scalar& get_lin(t_size i) noexcept
+	t_scalar& get_lin(t_size i) noexcept
 	{
 		return m_elems[i];
 	}
@@ -217,110 +201,89 @@ public:
 	/**
 	 * linear element access
 	 */
-	constexpr const t_scalar& get_lin(t_size i) const noexcept
+	const t_scalar& get_lin(t_size i) const noexcept
 	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin(i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get_lin(i);
 	}
 
 
 	/**
 	 * linear element access
 	 */
-	constexpr t_scalar& operator[](t_size i) noexcept
+	t_scalar& operator[](t_size i) noexcept
 	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get_lin(i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get_lin(i);
 	}
 
 
 	/**
 	 * linear element access
 	 */
-	constexpr const t_scalar& operator[](t_size i) const noexcept
+	const t_scalar& operator[](t_size i) const noexcept
 	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator[](i);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->operator[](i);
 	}
 
 
 	/**
 	 * element access
 	 */
-	template<class ...t_dims>
-	constexpr t_scalar& get(const t_dims&... dims) noexcept
+	template<template<class...> class t_init = std::initializer_list>
+	t_scalar& get(const t_init<t_size>& dims) noexcept
 	{
-		const std::array<t_size, sizeof...(SIZES)>
-			dims_arr{{static_cast<t_size>(dims)...}};
-		const t_size idx = ::get_linear_index<SIZES...>(dims_arr);
+		const t_size lin_idx = get_linear_index(dims);
 
-		return operator[](idx);
-
-		//return operator[](::get_linear_index(
-		//	std::forward_as_tuple(dims...),
-		//	std::forward_as_tuple(SIZES...)));
+		return operator[](lin_idx);
 	}
 
 
 	/**
 	 * element access
 	 */
-	template<class ...t_dims>
-	constexpr const t_scalar& get(const t_dims&... dims) const noexcept
+	template<template<class...> class t_init = std::initializer_list>
+	const t_scalar& get(const t_init<t_size>& dims) const noexcept
 	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->get<t_dims...>(dims...);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->get<t_init>(dims);
 	}
 
 
 	/**
 	 * element access
 	 */
-	template<class ...t_dims>
-	constexpr t_scalar& operator()(const t_dims&... dims) noexcept
+	template<template<class...> class t_init = std::initializer_list>
+	t_scalar& operator()(const t_init<t_size>& dims) noexcept
 	{
-		return get<t_dims...>(dims...);
+		return get<t_init>(dims);
 	}
 
 
 	/**
 	 * element access
 	 */
-	template<class ...t_dims>
-	constexpr const t_scalar& operator()(const t_dims&... dims) const noexcept
+	template<template<class...> class t_init = std::initializer_list>
+	const t_scalar& operator()(const t_init<t_size>& dims) const noexcept
 	{
-		return const_cast<Tensor<t_scalar, SIZES...>*>(this)->operator()<t_dims...>(dims...);
+		return const_cast<TensorDyn<t_scalar, t_size, t_cont_templ>*>
+			(this)->operator()<t_init>(dims);
+	}
+
+
+	/**
+	 * if the tensor contains just one element, allow conversion to scalar
+	 */
+	operator t_scalar() const
+	{
+		if(size() == 1)
+			return operator[](0);
+		else
+			throw std::logic_error("Invalid tensor -> scalar conversion.");
+		return 0;
 	}
 	// ------------------------------------------------------------------------
-
-
-	/**
-	 * convert a linear index to an array index
-	 */
-	std::array<t_size, sizeof...(SIZES)> get_array_index(t_size idx) const
-	{
-		constexpr const t_size order = sizeof...(SIZES);
-		constexpr const t_size sizes[order]{SIZES...};
-
-		std::array<t_size, order> arridx{};
-
-		for(int i=(int)order-1; i>=0; --i)
-		{
-			arridx[i] = idx % sizes[i];
-			idx /= sizes[i];
-		}
-
-		return arridx;
-	}
-
-
-	/**
-	 * convert an array index to a linear index
-	 */
-	constexpr t_size get_linear_index(
-		const std::array<t_size, sizeof...(SIZES)>& arr) const
-	{
-		return ::get_linear_index<SIZES...>(arr);
-
-		//auto tup = to_tuple(arr, std::make_index_sequence<sizeof...(SIZES)>());
-		//return ::get_linear_index(tup, std::forward_as_tuple(SIZES...));
-	}
 
 
 	/**
@@ -328,43 +291,26 @@ public:
 	 * e.g. contract a_{ijk} over i=k: a_j = a{iji} = a{1j1} + a{2j2} + ...
 	 * @see (DesktopBronstein08), ch. 4, equ. (4.75)
 	 */
-	template<t_size idx1, t_size idx2>
-	constexpr auto contract() const noexcept
+	TensorDyn<t_scalar, t_size, t_cont_templ>
+	contract(t_size idx1, t_size idx2) const noexcept
 	{
-		// remove indices
-		constexpr const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;
+		const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;
 
-		constexpr const auto seq = std::index_sequence<SIZES...>();
-		constexpr const auto seq_rm1 = seq_rm<std::index_sequence, idx1>(seq);
-		constexpr const auto seq_rm2 = seq_rm<std::index_sequence, idx2_new>(seq_rm1);
+		t_cont_sizes sizes = GetSizes();
+		sizes.erase(std::begin(sizes) + idx1);
+		sizes.erase(std::begin(sizes) + idx2_new);
 
-
-		// create contracted tensor
-		auto t = []<t_size... idxseq>(const std::index_sequence<idxseq...>&) -> auto
-		{
-			return Tensor<t_scalar, idxseq...>();
-		}(seq_rm2);
-
-
-		// tensor types
-		using t_tensor = Tensor<t_scalar, SIZES...>;
-		using t_tensor_contr = std::decay_t<decltype(t)>;
-		static_assert(t_tensor::size<idx1>() == t_tensor::size<idx2>(),
-			"Cannot contract over indices of different dimension.");
-
-
-		// calculate the contracted tensor value
-		constexpr const t_size order = t_tensor::order();
-		constexpr const t_size order_contr = t_tensor_contr::order();
-		static_assert(order-2 == order_contr, "Wrong order of contracted tensor.");
+		// contracted tensor
+		TensorDyn<t_scalar, t_size, t_cont_templ> t{sizes};
+		assert(order()-2 == t.order());
 
 		// create an index array to the full tensor from indices to the contracted one
-		auto get_full_idx = [](const std::array<t_size, order_contr>& arr_contr)
-			-> std::array<t_size, order>
+		auto get_full_idx = [this, &t, idx1, idx2](const t_cont_sizes& arr_contr) -> t_cont_sizes
 		{
-			std::array<t_size, order> arr{};
+			t_cont_sizes arr{};
+			arr.resize(this->order());
 
-			for(t_size i=0; i<order_contr; ++i)
+			for(t_size i=0; i<t.order(); ++i)
 			{
 				// copy the index array, leaving gaps at idx1 and idx2
 				t_size idx_full = i;
@@ -383,7 +329,7 @@ public:
 			auto idx_full_arr = get_full_idx(idx_contr_arr);
 
 			// iterate over the indices to contract
-			for(t_size idx=0; idx<t_tensor::size<idx1>(); ++idx)
+			for(t_size idx=0; idx<size(idx1); ++idx)
 			{
 				// set the two indices to contract over equal
 				idx_full_arr[idx1] = idx_full_arr[idx2] = idx;
@@ -402,8 +348,8 @@ public:
 	/**
 	 * unary +
 	 */
-	friend constexpr const Tensor<t_scalar, SIZES...>& operator+(
-		const Tensor<t_scalar, SIZES...>& t) noexcept
+	friend const TensorDyn<t_scalar, t_size, t_cont_templ>& operator+(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t) noexcept
 	{
 		return t;
 	}
@@ -412,24 +358,13 @@ public:
 	/**
 	 * unary -
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator-(
-		const Tensor<t_scalar, SIZES...>& t) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator-(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t) noexcept
 	{
-		using t_size = decltype(t.size());
-		Tensor<t_scalar, SIZES...> t2;
+		TensorDyn<t_scalar, t_size, t_cont_templ> t2{t.GetSizes()};
 
-#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t.size(); ++i)
 			t2[i] = -t[i];
-#else
-		[&t, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
-		{
-			( [&t, &t2]() -> void
-			{
-				t2[i] = -t[i];
-			}(), ...);
-		}(std::make_integer_sequence<t_size, /*t.size()*/ Tensor<t_scalar, SIZES...>::size()>());
-#endif
 
 		return t2;
 	}
@@ -438,24 +373,15 @@ public:
 	/**
 	 * binary +
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator+(
-		const Tensor<t_scalar, SIZES...>& t1, const Tensor<t_scalar, SIZES...>& t2) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator+(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
 	{
-		using t_size = decltype(t1.size());
-		Tensor<t_scalar, SIZES...> tret;
+		assert(t1.order() == t2.order());
+		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] + t2[i];
-#else
-		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
-		{
-			( [&tret, &t1, &t2]() -> void
-			{
-				tret[i] = t1[i] + t2[i];
-			}(), ...);
-		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
-#endif
 
 		return tret;
 	}
@@ -464,24 +390,15 @@ public:
 	/**
 	 * binary -
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator-(
-		const Tensor<t_scalar, SIZES...>& t1, const Tensor<t_scalar, SIZES...>& t2) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator-(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
 	{
-		using t_size = decltype(t1.size());
-		Tensor<t_scalar, SIZES...> tret;
+		assert(t1.order() == t2.order());
+		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] - t2[i];
-#else
-		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
-		{
-			( [&tret, &t1, &t2]() -> void
-			{
-				tret[i] = t1[i] - t2[i];
-			}(), ...);
-		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
-#endif
 
 		return tret;
 	}
@@ -490,24 +407,14 @@ public:
 	/**
 	 * scalar multiplication
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator*(
-		const Tensor<t_scalar, SIZES...>& t1, const t_scalar& s) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+		const t_scalar& s) noexcept
 	{
-		using t_size = decltype(t1.size());
-		Tensor<t_scalar, SIZES...> tret;
+		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-#ifdef __TENSOR_USE_DYN_LOOPS__
 		for(t_size i=0; i<t1.size(); ++i)
 			tret[i] = t1[i] * s;
-#else
-		[&tret, &t1, &s]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
-		{
-			( [&tret, &t1, &s]() -> void
-			{
-				tret[i] = t1[i] * s;
-			}(), ...);
-		}(std::make_integer_sequence<t_size, Tensor<t_scalar, SIZES...>::size()>());
-#endif
 
 		return tret;
 	}
@@ -516,8 +423,9 @@ public:
 	/**
 	 * scalar multiplication
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator*(
-		const t_scalar& s, const Tensor<t_scalar, SIZES...>& t1) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
+		const t_scalar& s,
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t1) noexcept
 	{
 		return operator*(t1, s);
 	}
@@ -526,8 +434,9 @@ public:
 	/**
 	 * scalar division
 	 */
-	friend constexpr Tensor<t_scalar, SIZES...> operator/(
-		const Tensor<t_scalar, SIZES...>& t1, const t_scalar& s) noexcept
+	friend TensorDyn<t_scalar, t_size, t_cont_templ> operator/(
+		const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+		const t_scalar& s) noexcept
 	{
 		return operator*(t1, t_scalar(1)/s);
 	}
@@ -536,8 +445,11 @@ public:
 	/**
 	 * addition
 	 */
-	constexpr Tensor<t_scalar, SIZES...>& operator+=(const Tensor<t_scalar, SIZES...>& t) noexcept
+	TensorDyn<t_scalar, t_size, t_cont_templ>&
+	operator+=(const TensorDyn<t_scalar, t_size, t_cont_templ>& t) noexcept
 	{
+		assert(order() == t.order());
+
 		for(t_size i=0; i<size(); ++i)
 			operator[](i) += t[i];
 
@@ -548,8 +460,11 @@ public:
 	/**
 	 * subtraction
 	 */
-	constexpr Tensor<t_scalar, SIZES...>& operator-=(const Tensor<t_scalar, SIZES...>& t) noexcept
+	TensorDyn<t_scalar, t_size, t_cont_templ>&
+	operator-=(const TensorDyn<t_scalar, t_size, t_cont_templ>& t) noexcept
 	{
+		assert(order() == t.order());
+
 		for(t_size i=0; i<size(); ++i)
 			operator[](i) -= t[i];
 
@@ -560,7 +475,8 @@ public:
 	/**
 	 * scalar multiplication
 	 */
-	constexpr Tensor<t_scalar, SIZES...>& operator*=(const t_scalar& s) noexcept
+	TensorDyn<t_scalar, t_size, t_cont_templ>&
+	operator*=(const t_scalar& s) noexcept
 	{
 		for(t_size i=0; i<size(); ++i)
 			operator[](i) *= s;
@@ -572,7 +488,8 @@ public:
 	/**
 	 * scalar division
 	 */
-	constexpr Tensor<t_scalar, SIZES...>& operator/=(const t_scalar& s) noexcept
+	TensorDyn<t_scalar, t_size, t_cont_templ>&
+	operator/=(const t_scalar& s) noexcept
 	{
 		return operator*=(t_scalar(1)/s);
 	}
@@ -580,8 +497,9 @@ public:
 
 
 private:
-	// tensor elements
+	// tensor elements and sizes
 	t_cont m_elems{};
+	t_cont_sizes m_sizes{};
 };
 
 
@@ -590,42 +508,24 @@ private:
  * tensor product
  * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
  */
-template<class t_scalar_1, std::size_t ...SIZES_1,
-	class t_scalar_2, std::size_t ...SIZES_2>
-constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
-tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
-	const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+template<class t_scalar, class t_size = std::size_t, template<class...> class t_cont_templ = std::vector>
+TensorDyn<t_scalar, t_size, t_cont_templ> tensor_prod(
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
 {
-	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
-	using t_tensor = Tensor<t_scalar, SIZES_1..., SIZES_2...>;
-	using t_size = typename t_tensor::t_size;
-	t_tensor res;
+	// merge the two size vectors
+	typename TensorDyn<t_scalar, t_size, t_cont_templ>::t_cont_sizes sizes;
+	sizes.reserve(t1.order() + t2.order());
+	std::merge(std::begin(t1.GetSizes()), std::end(t1.GetSizes()),
+		std::begin(t2.GetSizes()), std::end(t2.GetSizes()),
+		std::back_inserter(sizes));
 
-	using t_tensor_1 = std::decay_t<decltype(t1)>;
-	using t_tensor_2 = std::decay_t<decltype(t2)>;
-	constexpr const t_size rank_1 = t_tensor_1::order();
-	constexpr const t_size rank_2 = t_tensor_2::order();
+	TensorDyn<t_scalar, t_size, t_cont_templ> res{sizes};
 
-	if constexpr(rank_1 == 0 && rank_2 == 0)
+	if(t1.order() == 0 && t2.order() == 0)
 	{
 		res[0] = t1[0] * t2[0];
 	}
-
-	/*else if constexpr(rank_1 == 1 && rank_2 == 1)
-	{
-		for(t_size i=0; i<t1.template size<0>(); ++i)
-			for(t_size j=0; j<t2.template size<0>(); ++j)
-				res(i,j) = t1(i) * t2(j);
-	}
-
-	else if constexpr(rank_1 == 2 && rank_2 == 2)
-	{
-		for(t_size i=0; i<t1.template size<0>(); ++i)
-			for(t_size j=0; j<t1.template size<1>(); ++j)
-				for(t_size k=0; k<t2.template size<0>(); ++k)
-					for(t_size l=0; l<t2.template size<1>(); ++l)
-						res(i,j,k,l) = t1(i,j) * t2(k,l);
-	}*/
 
 	// general case
 	else
@@ -636,11 +536,6 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
 		for(t_size i=0; i<N1; ++i)
 			for(t_size j=0; j<N2; ++j)
 				res[i*N2 + j] = t1[i] * t2[j];
-
-		// alternatively:
-		//  generate rank_1 number of for loops
-		//    generate rank_2 number of for loops
-		//      res(rank_1 indices, rank_2 indices) = t1(rank_1 indices) * t2(rank_2 indices)
 	}
 
 	return res;
@@ -651,45 +546,51 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
  * tensor product
  * @see (DesktopBronstein08), ch. 4, equ. (4.73a)
  */
-template<class t_scalar_1, std::size_t ...SIZES_1,
-	class t_scalar_2, std::size_t ...SIZES_2>
-constexpr Tensor<std::common_type_t<t_scalar_1, t_scalar_2>, SIZES_1..., SIZES_2...>
-operator*(const Tensor<t_scalar_1, SIZES_1...>& t1,
-	const Tensor<t_scalar_2, SIZES_2...>& t2) noexcept
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+TensorDyn<t_scalar, t_size, t_cont_templ> operator*(
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t1,
+	const TensorDyn<t_scalar, t_size, t_cont_templ>& t2) noexcept
 {
-	return tensor_prod(t1, t2);
+	return tensor_prod<t_scalar, t_size, t_cont_templ>(t1, t2);
 }
 
 
 
 // --------------------------------------------------------------------------------
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class VectorDyn;
+
+
 /**
- * matrix with static size
+ * matrix with dynamic size
  */
-template<class t_scalar, std::size_t SIZE1, std::size_t SIZE2>
-class Matrix : public Tensor<t_scalar, SIZE1, SIZE2>
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class MatrixDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
 {
 public:
-	using t_tensor = Tensor<t_scalar, SIZE1, SIZE2>;
-	using t_size = typename t_tensor::t_size;
+	using t_matrix = MatrixDyn<t_scalar, t_size, t_cont_templ>;
+	using t_tensor = TensorDyn<t_scalar, t_size, t_cont_templ>;
 	using t_cont = typename t_tensor::t_cont;
 	using value_type = typename t_tensor::value_type;
 
 
 public:
-	constexpr Matrix(bool zero = true) noexcept
-		: t_tensor(zero)
-	{
-	}
+	MatrixDyn(t_size rows, t_size cols) noexcept
+		: t_tensor({rows, cols})
+	{}
 
 
-	~Matrix() noexcept = default;
+	MatrixDyn() noexcept = default;
+	~MatrixDyn() noexcept = default;
 
 
 	/**
 	 * copy constructor from tensor super class
 	 */
-	constexpr Matrix(const t_tensor& other) noexcept
+	MatrixDyn(const t_tensor& other) noexcept
 	{
 		t_tensor::operator=(other);
 	}
@@ -698,104 +599,76 @@ public:
 	/**
 	 * number of rows
 	 */
-	constexpr t_size size1() const noexcept
+	t_size size1() const noexcept
 	{
-		return t_tensor::template size<0>();
+		return t_tensor::size(0);
 	}
 
 
 	/**
 	 * number of columns
 	 */
-	constexpr t_size size2() const noexcept
+	t_size size2() const noexcept
 	{
-		return t_tensor::template size<1>();
+		return t_tensor::size(1);
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row, t_size col) noexcept
+	{
+		return t_tensor::operator()({row, col});
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row, t_size col) const noexcept
+	{
+		return t_tensor::operator()({row, col});
 	}
 
 
 	/**
 	 * get the transposed matrix
 	 */
-	constexpr Matrix<t_scalar, SIZE2, SIZE1> transpose() const noexcept
+	MatrixDyn transpose() const noexcept
 	{
-		using t_mat_transp = Matrix<t_scalar, SIZE2, SIZE1>;
+		return trans<t_matrix>(*this);
+	}
 
-		t_mat_transp mat;
 
-		for(t_size i=0; i<SIZE1; ++i)
-		{
-#ifdef __TENSOR_USE_DYN_LOOPS__
-			for(t_size j=0; j<SIZE2; ++j)
-				mat(j, i) = (*this)(i, j);
-#else
-			[&mat, i, this]<t_size ...j>(const std::integer_sequence<t_size, j...>&) -> void
-			{
-				( [&mat, i, this]() -> void
-				{
-					mat(j, i) = (*this)(i, j);
-				}(), ...);
-			}(std::make_integer_sequence<t_size, SIZE2>());
-#endif
-		}
+	/**
+	 * get a sub-matrix by removing a column and row
+	 */
+	MatrixDyn submatrix(t_size row, t_size col) const noexcept
+	{
+		return submat<t_matrix>(*this, row, col);
+	}
 
-		return mat;
+
+	t_scalar determinant() const noexcept
+	{
+		using t_vec = VectorDyn<t_scalar, t_size, t_cont_templ>;
+		return det<t_matrix, t_vec>(*this);
 	}
 };
 
 
 /**
- * matrix product, M_ij = R_ik S_kj
+ * matrix-matrix product, M_ij = R_ik S_kj
  */
-template<class t_scalar_1, class t_scalar_2,
-	std::size_t SIZEI, std::size_t SIZEJ, std::size_t SIZEK>
-constexpr Matrix<std::common_type_t<t_scalar_1, t_scalar_2>, SIZEI, SIZEJ>
-matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
-	const Matrix<t_scalar_2, SIZEK, SIZEJ>& S) noexcept
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+MatrixDyn<std::common_type_t<t_scalar_1, t_scalar_2>, t_size, t_cont_templ>
+operator*(const MatrixDyn<t_scalar_1, t_size, t_cont_templ>& R,
+	const MatrixDyn<t_scalar_2, t_size, t_cont_templ>& S) noexcept
 {
-	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
-	using t_M = Matrix<t_scalar, SIZEI, SIZEJ>;
-	using t_size = typename t_M::t_size;
-
-	t_M M;
-
-	for(t_size i=0; i<SIZEI; ++i)
-	{
-		for(t_size j=0; j<SIZEJ; ++j)
-		{
-			// ------------------
-			// inner loop over k
-			// ------------------
-			// using dynamic loop
-#ifdef __TENSOR_USE_DYN_LOOPS__
-			M(i, j) = t_scalar{0};
-
-			for(t_size k=0; k<SIZEK; ++k)
-				M(i, j) += R(i, k) * S(k, j);
-#else
-			// using unrolled statically-sized loop
-			[&M, &R, &S, i, j]<t_size ...k>(const std::integer_sequence<t_size, k...>&) -> void
-			{
-				M(i, j) = ((R(i, k) * S(k, j)) + ...);
-			}(std::make_integer_sequence<t_size, SIZEK>());
-#endif
-			// ------------------
-		}
-	}
-
-	return M;
-}
-
-
-/**
- * matrix product, M_ij = R_ik S_kj
- */
-template<class t_scalar_1, class t_scalar_2,
-	std::size_t SIZEI, std::size_t SIZEJ, std::size_t SIZEK>
-constexpr Matrix<std::common_type_t<t_scalar_1, t_scalar_2>, SIZEI, SIZEJ>
-operator*(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
-	const Matrix<t_scalar_2, SIZEK, SIZEJ>& S) noexcept
-{
-	return matrix_prod<t_scalar_1, t_scalar_2, SIZEI, SIZEJ, SIZEK>(R, S);
+	using t_mat = MatrixDyn<std::common_type_t<t_scalar_1, t_scalar_2>, t_size, t_cont_templ>;
+	return mult<t_mat>(R, S);
 }
 
 // --------------------------------------------------------------------------------
@@ -804,43 +677,60 @@ operator*(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 
 // --------------------------------------------------------------------------------
 /**
- * vector with static size
+ * vector with dynamic size
  */
-template<class t_scalar, std::size_t SIZE>
-class Vector : public Tensor<t_scalar, SIZE>
+template<class t_scalar, class t_size /*= std::size_t*/,
+	template<class...> class t_cont_templ /*= std::vector*/>
+class VectorDyn : public TensorDyn<t_scalar, t_size, t_cont_templ>
 {
 public:
-	using t_tensor = Tensor<t_scalar, SIZE>;
-	using t_size = typename t_tensor::t_size;
+	using t_tensor = TensorDyn<t_scalar, t_size, t_cont_templ>;
 	using t_cont = typename t_tensor::t_cont;
 	using value_type = typename t_tensor::value_type;
 
 
 public:
-	constexpr Vector(bool zero = true) noexcept
-		: t_tensor(zero)
-	{
-	}
+	VectorDyn(t_size rows) noexcept : t_tensor({rows})
+	{}
 
 
-	~Vector() noexcept = default;
+	VectorDyn() noexcept = default;
+	~VectorDyn() noexcept = default;
 
 
 	/**
 	 * copy constructor from tensor super class
 	 */
-	constexpr Vector(const t_tensor& other) noexcept
+	VectorDyn(const t_tensor& other) noexcept
 	{
 		t_tensor::operator=(other);
 	}
 
 
 	/**
-	 * number of rows
+	 * number of elements
 	 */
-	constexpr t_size size() const noexcept
+	t_size size() const noexcept
 	{
-		return t_tensor::template size<0>();
+		return t_tensor::size(0);
+	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row) noexcept
+	{
+		return t_tensor::operator()({row});
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row) const noexcept
+	{
+		return t_tensor::operator()({row});
 	}
 };
 
@@ -848,43 +738,16 @@ public:
 /**
  * inner product, s = v_i w_i
  */
-template<class t_scalar_1, class t_scalar_2, std::size_t SIZE>
-constexpr std::common_type_t<t_scalar_1, t_scalar_2>
-inner_prod(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) noexcept
+template<class t_scalar_1, class t_scalar_2, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+std::common_type_t<t_scalar_1, t_scalar_2>
+operator*(const VectorDyn<t_scalar_1, t_size, t_cont_templ>& v,
+	const VectorDyn<t_scalar_2, t_size, t_cont_templ>& w) noexcept
 {
-	using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
-	using t_V = Vector<t_scalar, SIZE>;
-	using t_size = typename t_V::t_size;
+	using t_vec1 = VectorDyn<t_scalar_1, t_size, t_cont_templ>;
+	using t_vec2 = VectorDyn<t_scalar_2, t_size, t_cont_templ>;
 
-	t_scalar s;
-
-	// using dynamic loop
-#ifdef __TENSOR_USE_DYN_LOOPS__
-	s = t_scalar{0};
-
-	for(t_size i=0; i<SIZE; ++i)
-		s += v[i] * w[i];
-#else
-	// using unrolled statically-sized loop
-	[&s, &v, &w]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
-	{
-		s = ((v[i] * w[i]) + ...);
-	}(std::make_integer_sequence<t_size, SIZE>());
-#endif
-	// ------------------
-
-	return s;
-}
-
-
-/**
- * inner product, s = v_i w_i
- */
-template<class t_scalar_1, class t_scalar_2, std::size_t SIZE>
-constexpr std::common_type_t<t_scalar_1, t_scalar_2>
-operator*(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) noexcept
-{
-	return inner_prod<t_scalar_1, t_scalar_2, SIZE>(v, w);
+	return inner<t_vec1, t_vec2>(v, w);
 }
 
 // --------------------------------------------------------------------------------
@@ -893,90 +756,168 @@ operator*(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w) 
 
 // --------------------------------------------------------------------------------
 /**
- * row vector with static size
+ * row vector with dynamic size
  */
-template<class t_scalar, std::size_t SIZE>
-class RowVector : public Matrix<t_scalar, SIZE, 1>
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class RowVectorDyn : public MatrixDyn<t_scalar, t_size, t_cont_templ>
 {
 public:
-	using t_matrix = Matrix<t_scalar, SIZE, 1>;
-	using t_tensor = typename Matrix<t_scalar, SIZE, 1>::t_tensor;
-	using t_size = typename t_matrix::t_size;
-	using t_cont = typename t_matrix::t_cont;
-	using value_type = typename t_matrix::value_type;
+	using t_matrix = MatrixDyn<t_scalar, t_size, t_cont_templ>;
+	using t_tensor = typename t_matrix::t_tensor;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
 
 
 public:
-	constexpr RowVector(bool zero = true) noexcept
-		: t_matrix(zero)
+	RowVectorDyn(t_size rows) noexcept : t_matrix(rows, 1)
+	{}
+
+
+	RowVectorDyn(t_size rows, t_size cols)
+		: t_matrix(rows, 1)
 	{
+		if(cols != 1)
+			throw std::logic_error("Invalid construction of row vector.");
 	}
 
 
-	~RowVector() noexcept = default;
+	RowVectorDyn() noexcept = default;
+	~RowVectorDyn() noexcept = default;
 
 
 	/**
 	 * copy constructor from tensor super class
 	 */
-	constexpr RowVector(const t_tensor& other) noexcept
+	RowVectorDyn(const t_tensor& other)
 	{
-		t_tensor::operator=(other);
+		this->operator=(other);
 	}
 
 
 	/**
-	 * number of rows
+	 * assignment from tensor super class
 	 */
-	constexpr t_size size() const noexcept
+	const RowVectorDyn& operator=(const t_tensor& other)
+	{
+		if(other.size(1) != 1)
+			throw std::logic_error("Invalid conversion to row vector.");
+
+		t_tensor::operator=(other);
+		return *this;
+	}
+
+
+	/**
+	 * number of elements
+	 */
+	t_size size() const noexcept
 	{
 		return t_matrix::size1();
 	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size row) noexcept
+	{
+		return t_matrix::operator()(row, 0);
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size row) const noexcept
+	{
+		return t_matrix::operator()(row, 0);
+	}
 };
 
 
 
 /**
- * column vector with static size
+ * column vector with dynamic size
  */
-template<class t_scalar, std::size_t SIZE>
-class ColVector : public Matrix<t_scalar, 1, SIZE>
+template<class t_scalar, class t_size = std::size_t,
+	template<class...> class t_cont_templ = std::vector>
+class ColVectorDyn : public MatrixDyn<t_scalar, t_size, t_cont_templ>
 {
 public:
-	using t_matrix = Matrix<t_scalar, 1, SIZE>;
-	using t_tensor = typename Matrix<t_scalar, 1, SIZE>::t_tensor;
-	using t_size = typename t_matrix::t_size;
-	using t_cont = typename t_matrix::t_cont;
-	using value_type = typename t_matrix::value_type;
+	using t_matrix = MatrixDyn<t_scalar, t_size, t_cont_templ>;
+	using t_tensor = typename t_matrix::t_tensor;
+	using t_cont = typename t_tensor::t_cont;
+	using value_type = typename t_tensor::value_type;
 
 
 public:
-	constexpr ColVector(bool zero = true) noexcept
-	: t_matrix(zero)
+	ColVectorDyn(t_size cols) noexcept
+		: t_matrix(1, cols)
+	{}
+
+
+	ColVectorDyn(t_size rows, t_size cols)
+		: t_matrix(1, cols)
 	{
+		if(rows != 1)
+			throw std::logic_error("Invalid construction of column vector.");
 	}
 
 
-	~ColVector() noexcept = default;
+	ColVectorDyn() noexcept = default;
+	~ColVectorDyn() noexcept = default;
 
 
 	/**
 	 * copy constructor from tensor super class
 	 */
-	constexpr ColVector(const t_tensor& other) noexcept
+	ColVectorDyn(const t_tensor& other)
 	{
-		t_tensor::operator=(other);
+		this->operator=(other);
 	}
 
 
 	/**
-	 * number of rows
+	 * assignment from tensor super class
 	 */
-	constexpr t_size size() const noexcept
+	const ColVectorDyn& operator=(const t_tensor& other)
+	{
+		if(other.size(0) != 1)
+			throw std::logic_error("Invalid conversion to column vector.");
+
+		t_tensor::operator=(other);
+		return *this;
+	}
+
+
+	/**
+	 * number of elements
+	 */
+	t_size size() const noexcept
 	{
 		return t_matrix::size2();
 	}
+
+
+	/**
+	 * element access
+	 */
+	t_scalar& operator()(t_size col) noexcept
+	{
+		return t_matrix::operator()(0, col);
+	}
+
+
+	/**
+	 * element access
+	 */
+	const t_scalar& operator()(t_size col) const noexcept
+	{
+		return t_matrix::operator()(0, col);
+	}
 };
+}
 
 // --------------------------------------------------------------------------------
 

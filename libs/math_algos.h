@@ -265,9 +265,9 @@ requires is_mat<t_mat> && is_basic_vec<t_vec>
 
 	t_vec vec;
 
-	for(t_idx iRow=0; iRow<mat.size1(); ++iRow)
-		for(t_idx iCol=0; iCol<mat.size2(); ++iCol)
-			vec.push_back(T_dst(mat(iRow, iCol)));
+	for(t_idx row_idx=0; row_idx<mat.size1(); ++row_idx)
+		for(t_idx col_idx=0; col_idx<mat.size2(); ++col_idx)
+			vec.push_back(T_dst(mat(row_idx, col_idx)));
 
 	return vec;
 }
@@ -360,9 +360,9 @@ requires is_mat<t_mat_dst> && is_mat<t_mat_src>
 
 	t_mat_dst matdst = create<t_mat_dst>(mat.size1(), mat.size2());
 
-	for(t_idx iRow=0; iRow<mat.size1(); ++iRow)
-		for(t_idx iCol=0; iCol<mat.size2(); ++iCol)
-			matdst(iRow, iCol) = T_dst(mat(iRow, iCol));
+	for(t_idx row_idx=0; row_idx<mat.size1(); ++row_idx)
+		for(t_idx col_idx=0; col_idx<mat.size2(); ++col_idx)
+			matdst(row_idx, col_idx) = T_dst(mat(row_idx, col_idx));
 
 	return matdst;
 }
@@ -380,9 +380,9 @@ requires is_mat<t_mat_dst> && is_mat<t_mat_src>
 
 	mat_dst = unit<t_mat_dst>(mat_dst.size1(), mat_dst.size2());
 
-	for(t_idx iRow=0; iRow<std::min(mat_src.size1(), mat_dst.size1()); ++iRow)
-		for(t_idx iCol=0; iCol<std::min(mat_src.size2(), mat_dst.size2()); ++iCol)
-			mat_dst(iRow, iCol) = T_dst(mat_src(iRow, iCol));
+	for(t_idx row_idx=0; row_idx<std::min(mat_src.size1(), mat_dst.size1()); ++row_idx)
+		for(t_idx col_idx=0; col_idx<std::min(mat_src.size2(), mat_dst.size2()); ++col_idx)
+			mat_dst(row_idx, col_idx) = T_dst(mat_src(row_idx, col_idx));
 }
 
 
@@ -631,18 +631,18 @@ template<class t_mat,
 t_mat create(const t_cont_outer<t_cont<typename t_mat::value_type>>& lst)
 requires is_mat<t_mat>
 {
-	const std::size_t iCols = lst.size();
-	const std::size_t iRows = lst.begin()->size();
+	const std::size_t col_idxs = lst.size();
+	const std::size_t row_idxs = lst.begin()->size();
 
-	t_mat mat = unit<t_mat>(iRows, iCols);
+	t_mat mat = unit<t_mat>(row_idxs, col_idxs);
 
 	auto iterCol = lst.begin();
-	for(std::size_t iCol=0; iCol<iCols; ++iCol)
+	for(std::size_t col_idx=0; col_idx<col_idxs; ++col_idx)
 	{
 		auto iterRow = iterCol->begin();
-		for(std::size_t iRow=0; iRow<iRows; ++iRow)
+		for(std::size_t row_idx=0; row_idx<row_idxs; ++row_idx)
 		{
-			mat(iRow, iCol) = *iterRow;
+			mat(row_idx, col_idx) = *iterRow;
 			std::advance(iterRow, 1);
 		}
 
@@ -660,16 +660,16 @@ template<class t_mat, class t_vec, template<class...> class t_cont_outer = std::
 t_mat create(const t_cont_outer<t_vec>& lst, bool bRow = false)
 requires is_mat<t_mat> && is_basic_vec<t_vec>
 {
-	const std::size_t iCols = lst.size();
-	const std::size_t iRows = lst.begin()->size();
+	const std::size_t col_idxs = lst.size();
+	const std::size_t row_idxs = lst.begin()->size();
 
-	t_mat mat = unit<t_mat>(iRows, iCols);
+	t_mat mat = unit<t_mat>(row_idxs, col_idxs);
 
 	auto iterCol = lst.begin();
-	for(std::size_t iCol=0; iCol<iCols; ++iCol)
+	for(std::size_t col_idx=0; col_idx<col_idxs; ++col_idx)
 	{
-		for(std::size_t iRow=0; iRow<iRows; ++iRow)
-			mat(iRow, iCol) = (*iterCol)[iRow];
+		for(std::size_t row_idx=0; row_idx<row_idxs; ++row_idx)
+			mat(row_idx, col_idx) = (*iterCol)[row_idx];
 		std::advance(iterCol, 1);
 	}
 
@@ -690,11 +690,11 @@ requires is_mat<t_mat>
 	t_mat mat = unit<t_mat>(N, N);
 
 	auto iter = lst.begin();
-	for(std::size_t iRow=0; iRow<N; ++iRow)
+	for(std::size_t row_idx=0; row_idx<N; ++row_idx)
 	{
-		for(std::size_t iCol=0; iCol<N; ++iCol)
+		for(std::size_t col_idx=0; col_idx<N; ++col_idx)
 		{
-			mat(iRow, iCol) = *iter;
+			mat(row_idx, col_idx) = *iter;
 			std::advance(iter, 1);
 		}
 	}
@@ -775,7 +775,11 @@ requires is_basic_vec<t_vec>
 	using t_size = decltype(vec1.size());
 	typename t_vec::value_type val(0);
 
-	for(t_size i=0; i<vec1.size(); ++i)
+	const t_size I = vec1.size();
+	const t_size J = vec2.size();
+	assert(I == J);
+
+	for(t_size i=0; i<I; ++i)
 	{
 		if constexpr(is_complex<typename t_vec::value_type>)
 			val += std::conj(vec1[i]) * vec2[i];
@@ -796,14 +800,18 @@ requires is_basic_vec<t_vec1> && is_basic_vec<t_vec2>
 {
 	using t_size = decltype(vec1.size());
 
-	if(vec1.size()==0 || vec2.size()==0)
+	const t_size I = vec1.size();
+	const t_size J = vec2.size();
+	//assert(I == J);
+
+	if(I==0 || J==0)
 		return typename t_vec1::value_type{};
 
 	// first element
 	auto val = vec1[0]*vec2[0];
 
 	// remaining elements
-	for(t_size i=1; i<std::min(vec1.size(), vec2.size()); ++i)
+	for(t_size i=1; i<std::min(I, J); ++i)
 	{
 		if constexpr(is_complex<typename t_vec1::value_type>)
 		{
@@ -960,6 +968,74 @@ requires is_mat<t_mat>
 					mat(i1*m2s1+i2, j1*m2s2+j2) = mat1(i1, j1) * mat2(i2, j2);
 
 	return mat;
+}
+
+
+/**
+ * matrix-matrix product, M_ij = R_ik S_kj
+ */
+template<class t_mat>
+requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+t_mat mult(const t_mat& R, const t_mat& S) noexcept
+{
+	if constexpr(m::is_dyn_mat<t_mat>)
+		assert((R.size2() == S.size1()));
+	else
+		static_assert(R.size2() == S.size1());
+
+	//using t_scalar = std::common_type_t<t_scalar_1, t_scalar_2>;
+	using t_scalar = typename t_mat::value_type;
+	using t_size = decltype(t_mat{}.size1());
+
+	const t_size I = R.size1();
+	const t_size J = S.size2();
+	const t_size K = R.size2();
+
+	t_mat M = create<t_mat>(I, J);
+
+	for(t_size i=0; i<I; ++i)
+	{
+		for(t_size j=0; j<J; ++j)
+		{
+			M(i, j) = t_scalar{0};
+
+			for(t_size k=0; k<K; ++k)
+				M(i, j) += R(i, k) * S(k, j);
+		}
+	}
+
+	return M;
+}
+
+
+/**
+ * matrix-vector product
+ */
+template<class t_mat, class t_vec>
+t_vec mult(const t_mat& mat, const t_vec& vec)
+requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+	&& m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+{
+	using t_size = decltype(t_mat{}.size1());
+
+	if constexpr(m::is_dyn_mat<t_mat>)
+		assert((mat.size2() == t_size(vec.size())));
+	else
+		static_assert(mat.size2() == t_size(vec.size()));
+
+	t_vec vecRet = m::create<t_vec>(mat.size1());
+
+	for(t_size row=0; row<mat.size1(); ++row)
+	{
+		vecRet[row] = typename t_vec::value_type{/*0*/};
+		for(t_size col=0; col<mat.size2(); ++col)
+		{
+			auto elem = mat(row, col) * vec[col];
+			vecRet[row] += elem;
+		}
+	}
+
+	return vecRet;
 }
 
 
@@ -1449,23 +1525,23 @@ requires is_mat<t_mat> && is_vec<t_vec>
 template<class t_vec>
 t_vec flat_submat(const t_vec& mat,
 	std::size_t iNumRows, std::size_t iNumCols,
-	std::size_t iRemRow, std::size_t iRemCol)
+	std::size_t rem_row, std::size_t rem_col)
 requires is_basic_vec<t_vec>
 {
 	using t_size = decltype(mat.size());
 	t_vec vec;
 	vec.reserve(iNumRows);
 
-	for(t_size iRow=0; iRow<iNumRows; ++iRow)
+	for(t_size row_idx=0; row_idx<iNumRows; ++row_idx)
 	{
-		if(iRow == iRemRow)
+		if(row_idx == rem_row)
 			continue;
 
-		for(t_size iCol=0; iCol<iNumCols; ++iCol)
+		for(t_size col_idx=0; col_idx<iNumCols; ++col_idx)
 		{
-			if(iCol == iRemCol)
+			if(col_idx == rem_col)
 				continue;
-			vec.push_back(mat[iRow*iNumCols + iCol]);
+			vec.push_back(mat[row_idx*iNumCols + col_idx]);
 		}
 	}
 
@@ -1477,29 +1553,29 @@ requires is_basic_vec<t_vec>
  * submatrix removing a column/row from a matrix
  */
 template<class t_mat>
-t_mat submat(const t_mat& mat, decltype(mat.size1()) iRemRow, decltype(mat.size2()) iRemCol)
+t_mat submat(const t_mat& mat, decltype(mat.size1()) rem_row, decltype(mat.size2()) rem_col)
 requires is_dyn_mat<t_mat>
 {
 	using size_t = decltype(mat.size1());
 	t_mat matRet = m::create<t_mat>(mat.size1()-1, mat.size2()-1);
 
-	size_t iResRow = 0;
-	for(size_t iRow=0; iRow<mat.size1(); ++iRow)
+	size_t res_row = 0;
+	for(size_t row_idx=0; row_idx<mat.size1(); ++row_idx)
 	{
-		if(iRow == iRemRow)
+		if(row_idx == rem_row)
 			continue;
 
 		size_t iResCol = 0;
-		for(size_t iCol=0; iCol<mat.size2(); ++iCol)
+		for(size_t col_idx=0; col_idx<mat.size2(); ++col_idx)
 		{
-			if(iCol == iRemCol)
+			if(col_idx == rem_col)
 				continue;
 
-			matRet(iResRow, iResCol) = mat(iRow, iCol);
+			matRet(res_row, iResCol) = mat(row_idx, col_idx);
 			++iResCol;
 		}
 
-		++iResRow;
+		++res_row;
 	}
 
 	return matRet;
@@ -1511,53 +1587,53 @@ requires is_dyn_mat<t_mat>
  * @see (Merziger06), p. 185
  */
 template<class t_vec>
-typename t_vec::value_type flat_det(const t_vec& mat, std::size_t iN)
+typename t_vec::value_type flat_det(const t_vec& mat, std::size_t N)
 requires is_basic_vec<t_vec>
 {
 	using t_size = decltype(mat.size());
 	using T = typename t_vec::value_type;
 
 	// special cases
-	if(iN == 0)
+	if(N == 0)
 		return 0;
-	else if(iN == 1)
+	else if(N == 1)
 		return mat[0];
-	else if(iN == 2)
+	else if(N == 2)
 		return mat[0]*mat[3] - mat[1]*mat[2];
 
 
 	T fullDet = T(0);
-	t_size iRow = 0;
+	t_size row_idx = 0;
 
 	// get row with maximum number of zeros
-	t_size iMaxNumZeros = 0;
-	for(t_size iCurRow=0; iCurRow<iN; ++iCurRow)
+	t_size max_num_zeros = 0;
+	for(t_size cur_row=0; cur_row<N; ++cur_row)
 	{
-		t_size iNumZeros = 0;
-		for(t_size iCurCol=0; iCurCol<iN; ++iCurCol)
+		t_size num_zeros = 0;
+		for(t_size cur_col=0; cur_col<N; ++cur_col)
 		{
-			if(equals<T>(mat[iCurRow*iN + iCurCol], T(0)))
-				++iNumZeros;
+			if(equals<T>(mat[cur_row*N + cur_col], T(0)))
+				++num_zeros;
 		}
 
-		if(iNumZeros > iMaxNumZeros)
+		if(num_zeros > max_num_zeros)
 		{
-			iRow = iCurRow;
-			iMaxNumZeros = iNumZeros;
+			row_idx = cur_row;
+			max_num_zeros = num_zeros;
 		}
 	}
 
 
-	// recursively expand determiant along a row
-	for(t_size iCol=0; iCol<iN; ++iCol)
+	// recursively expand determinant along a row
+	for(t_size col_idx=0; col_idx<N; ++col_idx)
 	{
-		const T elem = mat[iRow*iN + iCol];
+		const T elem = mat[row_idx*N + col_idx];
 		if(equals<T>(elem, 0))
 			continue;
 
-		const T sgn = ((iRow+iCol) % 2) == 0 ? T(1) : T(-1);
-		const t_vec subMat = flat_submat<t_vec>(mat, iN, iN, iRow, iCol);
-		const T subDet = flat_det<t_vec>(subMat, iN-1) * sgn;
+		const T sgn = ((row_idx+col_idx) % 2) == 0 ? T(1) : T(-1);
+		const t_vec subMat = flat_submat<t_vec>(mat, N, N, row_idx, col_idx);
+		const T subDet = flat_det<t_vec>(subMat, N-1) * sgn;
 
 		fullDet += elem * subDet;
 	}
@@ -1568,6 +1644,7 @@ requires is_basic_vec<t_vec>
 
 /**
  * determinant
+ * @see (Merziger06), p. 185
  */
 template<class t_mat, class t_vec>
 typename t_mat::value_type det(const t_mat& mat)
@@ -1754,12 +1831,12 @@ requires is_basic_vec<t_vec>
 		std::vector<T> mat = zero<std::vector<T>>(N*N);
 		mat[0*N + iComp] = T(1);
 
-		t_size iRow = 0;
+		t_size row_idx = 0;
 		for(const t_vec& vec : vecs)
 		{
-			for(t_size iCol=0; iCol<N; ++iCol)
-				mat[(iRow+1)*N + iCol] = vec[iCol];
-			++iRow;
+			for(t_size col_idx=0; col_idx<N; ++col_idx)
+				mat[(row_idx+1)*N + col_idx] = vec[col_idx];
+			++row_idx;
 		}
 
 		vec[iComp] = flat_det<decltype(mat)>(mat, N);

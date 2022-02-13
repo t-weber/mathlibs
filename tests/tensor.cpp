@@ -8,7 +8,7 @@
  */
 
 #include "tensor.h"
-#include "tensor_dyn.h"
+#include "tensor_stat.h"
 
 #include <iostream>
 
@@ -66,7 +66,7 @@ void test_tensor()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	Tensor<t_real, 2,3> t1{}, t2{};
+	m::Tensor<t_real, 2,3> t1{}, t2{};
 	std::cout << "dims: " << t1.size<0>() << " " << t1.size<1>() << std::endl;
 	std::cout << "total size: " << t1.size() << std::endl;
 	std::cout << "order: " << t1.order() << std::endl;
@@ -89,7 +89,7 @@ void test_tensor()
 	std::cout << "tensor product order: " << t3.order() << std::endl;
 
 
-	Tensor<t_real, 3,3> t4{};
+	m::Tensor<t_real, 3,3> t4{};
 	t4(0,0) = 1; t4(0,1) = 2; t4(0,2) = 3;
 	t4(1,0) = 4; t4(1,1) = 5; t4(1,2) = 6;
 	t4(2,0) = 7; t4(2,1) = 8; t4(2,2) = 9;
@@ -105,7 +105,7 @@ void test_tensor_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	TensorDyn<t_real> t1{{2,3}}, t2{{2,3}};
+	m::TensorDyn<t_real> t1{{2,3}}, t2{{2,3}};
 	std::cout << "dims: " << t1.size(0) << " " << t1.size(1) << std::endl;
 	std::cout << "total size: " << t1.size() << std::endl;
 	std::cout << "order: " << t1.order() << std::endl;
@@ -128,7 +128,7 @@ void test_tensor_dyn()
 	std::cout << "tensor product order: " << t3.order() << std::endl;
 
 
-	TensorDyn<t_real> t4({3,3});
+	m::TensorDyn<t_real> t4({3,3});
 	t4({0,0}) = 1; t4({0,1}) = 2; t4({0,2}) = 3;
 	t4({1,0}) = 4; t4({1,1}) = 5; t4({1,2}) = 6;
 	t4({2,0}) = 7; t4({2,1}) = 8; t4({2,2}) = 9;

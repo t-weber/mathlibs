@@ -8,7 +8,7 @@
  */
 
 #include "tensor.h"
-#include "tensor_dyn.h"
+#include "tensor_stat.h"
 #include "math_algos.h"
 
 #include <iostream>
@@ -21,8 +21,9 @@ void test_matrix()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	using t_mat22 = Matrix<t_real, 2, 2>;
-	using t_vec2 = Vector<t_real, 2>;
+	using t_mat22 = m::Matrix<t_real, 2, 2>;
+	using t_mat11 = m::Matrix<t_real, 1, 1>;
+	using t_vec2 = m::Vector<t_real, 2>;
 
 	t_mat22 m1{}, m2{};
 	std::cout << "dims: " << m1.size1() << " " << m1.size2() << std::endl;
@@ -60,6 +61,17 @@ void test_matrix()
 			std::cout << inv(i, j) << " ";
 		std::cout << std::endl;
 	}*/
+
+	t_mat11 sub = m1.submatrix<0,1>();
+	std::cout << "submatrix:\n";
+	for(std::size_t i=0; i<sub.size1(); ++i)
+	{
+		for(std::size_t j=0; j<sub.size2(); ++j)
+			std::cout << sub(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	std::cout << "determinant: " << m1.determinant() << std::endl;
 }
 
 
@@ -67,7 +79,7 @@ void test_vector()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	Vector<t_real, 3> v1{}, v2{};
+	m::Vector<t_real, 3> v1{}, v2{};
 	std::cout << "dim: " << v1.size() << " " << std::endl;
 
 	v1[0] = 1;
@@ -78,7 +90,7 @@ void test_vector()
 	v2[1] = 8;
 	v2[2] = 9;
 
-	Vector<t_real, 3> v3 = v1 + v2;
+	m::Vector<t_real, 3> v3 = v1 + v2;
 	std::cout << "v1 + v2:\n";
 	for(std::size_t i=0; i<v3.size(); ++i)
 		std::cout << v3[i] << " ";
@@ -93,8 +105,8 @@ void test_row_col_vector()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	ColVector<t_real, 3> v1{};
-	RowVector<t_real, 3> v2{};
+	m::ColVector<t_real, 3> v1{};
+	m::RowVector<t_real, 3> v2{};
 	std::cout << "dim: " << v1.size() << " " << std::endl;
 
 	v1[0] = 1;
@@ -105,7 +117,7 @@ void test_row_col_vector()
 	v2[1] = 8;
 	v2[2] = 9;
 
-	ColVector<t_real, 3> v3 = v1 + v1;
+	m::ColVector<t_real, 3> v3 = v1 + v1;
 	std::cout << "v1 + v1:\n";
 	for(std::size_t i=0; i<v3.size(); ++i)
 		std::cout << v3[i] << " ";
@@ -125,8 +137,8 @@ void test_matrix_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	using t_mat = MatrixDyn<t_real>;
-	using t_vec = VectorDyn<t_real>;
+	using t_mat = m::MatrixDyn<t_real>;
+	using t_vec = m::VectorDyn<t_real>;
 
 	t_mat m1{2, 2}, m2{2, 2};
 	std::cout << "dims: " << m1.size1() << " " << m1.size2() << std::endl;
@@ -173,6 +185,17 @@ void test_matrix_dyn()
 			std::cout << ident(i, j) << " ";
 		std::cout << std::endl;
 	}
+
+	t_mat sub = m1.submatrix(0,1);
+	std::cout << "submatrix:\n";
+	for(std::size_t i=0; i<sub.size1(); ++i)
+	{
+		for(std::size_t j=0; j<sub.size2(); ++j)
+			std::cout << sub(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	std::cout << "determinant: " << m1.determinant() << std::endl;
 }
 
 
@@ -180,7 +203,7 @@ void test_vector_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	VectorDyn<t_real> v1{3}, v2{3};
+	m::VectorDyn<t_real> v1{3}, v2{3};
 	std::cout << "dim: " << v1.size() << " " << std::endl;
 
 	v1[0] = 1;
@@ -191,7 +214,7 @@ void test_vector_dyn()
 	v2[1] = 8;
 	v2[2] = 9;
 
-	VectorDyn<t_real> v3 = v1 + v2;
+	m::VectorDyn<t_real> v3 = v1 + v2;
 	std::cout << "v1 + v2:\n";
 	for(std::size_t i=0; i<v3.size(); ++i)
 		std::cout << v3[i] << " ";
@@ -206,8 +229,8 @@ void test_row_col_vector_dyn()
 {
 	std::cout << "\n" << __func__ << std::endl;
 
-	ColVectorDyn<t_real> v1{3};
-	RowVectorDyn<t_real> v2{3};
+	m::ColVectorDyn<t_real> v1{3};
+	m::RowVectorDyn<t_real> v2{3};
 	std::cout << "dim: " << v1.size() << " " << std::endl;
 
 	v1[0] = 1;
@@ -218,7 +241,7 @@ void test_row_col_vector_dyn()
 	v2[1] = 8;
 	v2[2] = 9;
 
-	ColVectorDyn<t_real> v3 = v1 + v1;
+	m::ColVectorDyn<t_real> v3 = v1 + v1;
 	std::cout << "v1 + v1:\n";
 	for(std::size_t i=0; i<v3.size(); ++i)
 		std::cout << v3[i] << " ";
