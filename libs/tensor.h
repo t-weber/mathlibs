@@ -102,6 +102,12 @@ public:
 	~TensorDyn() noexcept = default;
 
 
+	void SetEpsilon(t_scalar eps)
+	{
+		m_eps = eps;
+	}
+
+
 	template<template<class...> class t_init = std::initializer_list>
 	void SetSizes(const t_init<t_size>& sizes) noexcept
 	{
@@ -496,6 +502,11 @@ public:
 	// ------------------------------------------------------------------------
 
 
+protected:
+	// epsilon value
+	t_scalar m_eps = std::numeric_limits<t_scalar>::epsilon();
+
+
 private:
 	// tensor elements and sizes
 	t_cont m_elems{};
@@ -652,8 +663,20 @@ public:
 
 	t_scalar determinant() const noexcept
 	{
-		using t_vec = VectorDyn<t_scalar, t_size, t_cont_templ>;
-		return det<t_matrix, t_vec>(*this);
+		using t_vector = VectorDyn<t_scalar, t_size, t_cont_templ>;
+		return det<t_matrix, t_vector>(*this);
+	}
+
+
+	MatrixDyn inverse(bool* ok = nullptr) const
+	{
+		using t_vector = VectorDyn<t_scalar, t_size, t_cont_templ>;
+
+		auto [mat_inv, _ok] = inv<t_matrix, t_vector>(*this);
+		if(ok)
+			*ok = _ok;
+
+		return mat_inv;
 	}
 };
 

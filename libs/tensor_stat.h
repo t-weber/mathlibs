@@ -58,6 +58,12 @@ public:
 	~Tensor() noexcept = default;
 
 
+	void SetEpsilon(t_scalar eps)
+	{
+		m_eps = eps;
+	}
+
+
 	/**
 	 * copy constructor
 	 */
@@ -584,6 +590,11 @@ public:
 	// ------------------------------------------------------------------------
 
 
+protected:
+	// epsilon value
+	t_scalar m_eps = std::numeric_limits<t_scalar>::epsilon();
+
+
 private:
 	// tensor elements
 	t_cont m_elems{};
@@ -722,7 +733,8 @@ public:
 	/**
 	 * get the transposed matrix
 	 */
-	constexpr Matrix<t_scalar, SIZE2, SIZE1> transpose() const noexcept
+	constexpr Matrix<t_scalar, SIZE2, SIZE1>
+	transpose() const noexcept
 	{
 		using t_mat_transp = Matrix<t_scalar, SIZE2, SIZE1>;
 
@@ -752,7 +764,8 @@ public:
 	 * get a sub-matrix by removing a column and row
 	 */
 	template<t_size ROW, t_size COL>
-	constexpr Matrix<t_scalar, SIZE1-1, SIZE2-1> submatrix() const noexcept
+	constexpr Matrix<t_scalar, SIZE1-1, SIZE2-1>
+	submatrix() const noexcept
 	{
 		using t_submat = Matrix<t_scalar, SIZE1-1, SIZE2-1>;
 		t_submat mat;
@@ -823,6 +836,48 @@ public:
 		}
 
 		return t_scalar{};
+	}
+
+
+	/**
+	 * calculate matrix inverse
+	 * @see https://en.wikipedia.org/wiki/Invertible_matrix#In_relation_to_its_adjugate
+	 * @see https://en.wikipedia.org/wiki/Adjugate_matrix
+	 */
+	constexpr Matrix<t_scalar, SIZE1, SIZE2>
+	inverse(bool* ok = nullptr) const
+	{
+		static_assert(size1() == size2(), "Inverse needs square matrix.");
+
+		t_matrix invmat;
+		t_scalar thedet = this->determinant();
+
+		if(std::abs(thedet) < t_tensor::m_eps)
+		{
+			if(ok)
+				*ok = false;
+			return invmat;
+		}
+
+		[&invmat, this]<t_size ...elem_idx>(
+			const std::integer_sequence<t_size, elem_idx...>&) -> void
+		{
+			( [&invmat, this]() -> void
+			{
+				constexpr t_size row = elem_idx % SIZE2;
+				constexpr t_size col = elem_idx / SIZE2;
+
+				t_scalar sign = (((row+col) % 2) ? t_scalar(-1) : t_scalar(1));
+				t_scalar subdet = this->submatrix<row, col>().determinant();
+				invmat(col, row) = sign * subdet;
+			}(), ...);
+		}(std::make_integer_sequence<t_size, SIZE1 * SIZE2>());
+
+		invmat /= thedet;
+		if(ok)
+			*ok = true;
+
+		return invmat;
 	}
 };
 

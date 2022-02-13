@@ -23,7 +23,7 @@ void test_matrix()
 
 	using t_mat22 = m::Matrix<t_real, 2, 2>;
 	using t_mat11 = m::Matrix<t_real, 1, 1>;
-	using t_vec2 = m::Vector<t_real, 2>;
+	//using t_vec2 = m::Vector<t_real, 2>;
 
 	t_mat22 m1{}, m2{};
 	std::cout << "dims: " << m1.size1() << " " << m1.size2() << std::endl;
@@ -52,16 +52,6 @@ void test_matrix()
 		std::cout << std::endl;
 	}
 
-	/*auto [inv, ok] = m::inv<t_mat22, t_vec2>(m1);
-	std::cout << "inverse: ";
-	std::cout << std::boolalpha << ok << "\n";
-	for(std::size_t i=0; i<inv.size1(); ++i)
-	{
-		for(std::size_t j=0; j<inv.size2(); ++j)
-			std::cout << inv(i, j) << " ";
-		std::cout << std::endl;
-	}*/
-
 	t_mat11 sub = m1.submatrix<0,1>();
 	std::cout << "submatrix:\n";
 	for(std::size_t i=0; i<sub.size1(); ++i)
@@ -72,6 +62,24 @@ void test_matrix()
 	}
 
 	std::cout << "determinant: " << m1.determinant() << std::endl;
+
+	t_mat22 invmat = m1.inverse();
+	std::cout << "inverse:\n";
+	for(std::size_t i=0; i<invmat.size1(); ++i)
+	{
+		for(std::size_t j=0; j<invmat.size2(); ++j)
+			std::cout << invmat(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	t_mat22 ident = invmat * m1;
+	std::cout << "identity:\n";
+	for(std::size_t i=0; i<ident.size1(); ++i)
+	{
+		for(std::size_t j=0; j<ident.size2(); ++j)
+			std::cout << ident(i, j) << " ";
+		std::cout << std::endl;
+	}
 }
 
 
@@ -138,7 +146,7 @@ void test_matrix_dyn()
 	std::cout << "\n" << __func__ << std::endl;
 
 	using t_mat = m::MatrixDyn<t_real>;
-	using t_vec = m::VectorDyn<t_real>;
+	//using t_vec = m::VectorDyn<t_real>;
 
 	t_mat m1{2, 2}, m2{2, 2};
 	std::cout << "dims: " << m1.size1() << " " << m1.size2() << std::endl;
@@ -167,25 +175,6 @@ void test_matrix_dyn()
 		std::cout << std::endl;
 	}
 
-	auto [inv, ok] = m::inv<t_mat, t_vec>(m1);
-	std::cout << "inverse: ";
-	std::cout << std::boolalpha << ok << "\n";
-	for(std::size_t i=0; i<inv.size1(); ++i)
-	{
-		for(std::size_t j=0; j<inv.size2(); ++j)
-			std::cout << inv(i, j) << " ";
-		std::cout << std::endl;
-	}
-
-	t_mat ident = inv * m1;
-	std::cout << "identity:\n";
-	for(std::size_t i=0; i<ident.size1(); ++i)
-	{
-		for(std::size_t j=0; j<ident.size2(); ++j)
-			std::cout << ident(i, j) << " ";
-		std::cout << std::endl;
-	}
-
 	t_mat sub = m1.submatrix(0,1);
 	std::cout << "submatrix:\n";
 	for(std::size_t i=0; i<sub.size1(); ++i)
@@ -196,6 +185,25 @@ void test_matrix_dyn()
 	}
 
 	std::cout << "determinant: " << m1.determinant() << std::endl;
+
+
+	t_mat invmat = m1.inverse();
+	std::cout << "inverse:\n";
+	for(std::size_t i=0; i<invmat.size1(); ++i)
+	{
+		for(std::size_t j=0; j<invmat.size2(); ++j)
+			std::cout << invmat(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	t_mat ident = invmat * m1;
+	std::cout << "identity:\n";
+	for(std::size_t i=0; i<ident.size1(); ++i)
+	{
+		for(std::size_t j=0; j<ident.size2(); ++j)
+			std::cout << ident(i, j) << " ";
+		std::cout << std::endl;
+	}
 }
 
 
