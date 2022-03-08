@@ -656,7 +656,8 @@ requires is_mat<t_mat>
 /**
  * create matrix from column (or row) vectors
  */
-template<class t_mat, class t_vec, template<class...> class t_cont_outer = std::initializer_list>
+template<class t_mat, class t_vec,
+	template<class...> class t_cont_outer = std::initializer_list>
 t_mat create(const t_cont_outer<t_vec>& lst, bool bRow = false)
 requires is_mat<t_mat> && is_basic_vec<t_vec>
 {
@@ -1460,8 +1461,8 @@ requires is_vec<t_vec>
  * @see https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
  */
 template<class t_vec,
-	template<class...> class t_cont_in = std::initializer_list,
-	template<class...> class t_cont_out = std::vector>
+	template<class...> class t_cont_out = std::vector,
+	template<class...> class t_cont_in = std::initializer_list>
 t_cont_out<t_vec> orthonorm_sys(const t_cont_in<t_vec>& sys)
 requires is_vec<t_vec>
 {
@@ -1826,20 +1827,35 @@ requires is_basic_vec<t_vec>
 	const t_size N = vecs.size()+1;
 	t_vec vec = zero<t_vec>(N);
 
-	for(t_size iComp=0; iComp<N; ++iComp)
+	// 3-dim case
+	if(N == 3 && vecs.begin()->size() == 3)
 	{
-		std::vector<T> mat = zero<std::vector<T>>(N*N);
-		mat[0*N + iComp] = T(1);
+		const t_vec& vec0 = *vecs.begin();
+		const t_vec& vec1 = *std::next(vecs.begin(), 1);
 
-		t_size row_idx = 0;
-		for(const t_vec& vec : vecs)
+		vec[0] = vec0[1]*vec1[2] - vec0[2]*vec1[1];
+		vec[1] = vec0[2]*vec1[0] - vec0[0]*vec1[2];
+		vec[2] = vec0[0]*vec1[1] - vec0[1]*vec1[0];
+	}
+
+	// general case
+	else
+	{
+		for(t_size iComp=0; iComp<N; ++iComp)
 		{
-			for(t_size col_idx=0; col_idx<N; ++col_idx)
-				mat[(row_idx+1)*N + col_idx] = vec[col_idx];
-			++row_idx;
-		}
+			std::vector<T> mat = zero<std::vector<T>>(N*N);
+			mat[0*N + iComp] = T(1);
 
-		vec[iComp] = flat_det<decltype(mat)>(mat, N);
+			t_size row_idx = 0;
+			for(const t_vec& vec : vecs)
+			{
+				for(t_size col_idx=0; col_idx<N; ++col_idx)
+					mat[(row_idx+1)*N + col_idx] = vec[col_idx];
+				++row_idx;
+			}
+
+			vec[iComp] = flat_det<decltype(mat)>(mat, N);
+		}
 	}
 
 	return vec;
@@ -2275,8 +2291,8 @@ requires is_vec<t_vec>
 	const T len13 = norm<t_vec>(vec13);
 	const T lenuv12 = norm<t_vec>(uv12);
 	const T lenuv13 = norm<t_vec>(uv13);
-	auto vecBasis = orthonorm_sys<t_vec, std::initializer_list, std::vector>({vec12, vec13});
-	auto uvBasis = orthonorm_sys<t_vec, std::initializer_list, std::vector>({uv12, uv13});
+	auto vecBasis = orthonorm_sys<t_vec, std::vector, std::initializer_list>({vec12, vec13});
+	auto uvBasis = orthonorm_sys<t_vec, std::vector, std::initializer_list>({uv12, uv13});
 	vec12 = vecBasis[0]*len12;
 	vec13 = vecBasis[1]*len13;
 	uv12 = uvBasis[0]*lenuv12;
@@ -2444,11 +2460,14 @@ requires is_vec<t_vec> && is_mat<t_mat>
 
 /**
  * rotation axis and angle to rotate vector vec1 into vec2
+ * @see O. I. Zhelezov, American Journal of Computational and Applied Mathematics 7(2), pp. 51-57 (2017), doi: 10.5923/j.ajcam.20170702.04
  */
 template<class t_vec, class t_real = typename t_vec::value_type>
 std::tuple<t_vec, t_real> rotation_axis(const t_vec& vec1, const t_vec& vec2)
 requires is_vec<t_vec>
 {
+	assert(vec1.size() == vec2.size());
+
 	// rotation axis
 	t_vec axis = cross<t_vec>({ vec1, vec2 });
 	const t_real lenaxis = norm<t_vec>(axis);
@@ -2466,11 +2485,14 @@ requires is_vec<t_vec>
 
 /**
  * matrix to rotate vector vec1 into vec2
+ * @see O. I. Zhelezov, American Journal of Computational and Applied Mathematics 7(2), pp. 51-57 (2017), doi: 10.5923/j.ajcam.20170702.04
  */
 template<class t_mat, class t_vec, class t_real = typename t_vec::value_type>
-t_mat rotation(const t_vec& vec1, const t_vec& vec2, t_real eps = std::numeric_limits<t_real>::epsilon())
+t_mat rotation(const t_vec& vec1, const t_vec& vec2,
+	t_real eps = std::numeric_limits<t_real>::epsilon())
 requires is_vec<t_vec> && is_mat<t_mat>
 {
+	assert(vec1.size() == vec2.size());
 	using t_size = decltype(vec1.size());
 
 	// rotation axis
@@ -2491,6 +2513,74 @@ requires is_vec<t_vec> && is_mat<t_mat>
 
 	t_mat mat = rotation<t_mat, t_vec>(axis, angle, true);
 	return mat;
+}
+
+
+/**
+ * givens rotation matrix
+ * @see https://en.wikipedia.org/wiki/Givens_rotation
+ */
+template<class t_mat, class t_real = typename t_mat::value_type>
+t_mat givens(std::size_t N, std::size_t i, std::size_t j, t_real angle)
+requires is_mat<t_mat>
+{
+	if(j > i)
+		std::swap(i, j);
+
+	t_mat mat = unit<t_mat>(N, N);
+
+	const t_real s = std::sin(angle);
+	const t_real c = std::cos(angle);
+
+	mat(i, j) = s;
+	mat(j, i) = -s;
+	mat(i, i) = mat(j,j) = c;
+
+	return mat;
+}
+
+
+/**
+ * matrix to rotate n-dim vector vec1 into vec2
+ * @see O. I. Zhelezov, American Journal of Computational and Applied Mathematics 7(2), pp. 51-57 (2017), doi: 10.5923/j.ajcam.20170702.04
+ */
+template<class t_mat, class t_vec, class t_real = typename t_vec::value_type>
+t_mat rotation_nd(const t_vec& vec1, const t_vec& vec2)
+requires is_vec<t_vec> && is_mat<t_mat>
+{
+	assert(vec1.size() == vec2.size());
+	using t_size = decltype(vec1.size());
+	const t_size dim = vec1.size();
+
+	// rotation angle
+	const t_real cos_angle = inner<t_vec>(vec1, vec2) / (norm<t_vec>(vec1) * norm<t_vec>(vec2));
+	const t_real angle = std::acos(cos_angle);
+	t_mat rot_01 = givens<t_mat, t_real>(dim, 0, 1, angle);
+
+	std::vector<t_vec> vecBasis = orthonorm_sys<t_vec, std::vector>({vec1, vec2});
+
+	t_mat matBasis, matBasis_inv;
+
+	if(dim == 2)
+	{
+		matBasis = create<t_mat, t_vec>({vecBasis[0], vecBasis[1]}, true);
+	}
+	else if(dim == 3)
+	{
+		t_vec vec = cross<t_vec>({ vecBasis[0], vecBasis[1] });
+		matBasis = create<t_mat, t_vec>({vecBasis[0], vecBasis[1], vec}, true);
+	}
+	else
+	{
+		// TODO: n-dim basis
+		//       extend matBasis with linearly independent vectors until it has the full rank
+	}
+
+	//bool inv_ok = false;
+	//std::tie(matBasis_inv, inv_ok) = inv<t_mat, t_vec>(matBasis);
+	matBasis_inv = trans<t_mat>(matBasis);
+
+	return matBasis_inv * rot_01 * matBasis;
 }
 
 
