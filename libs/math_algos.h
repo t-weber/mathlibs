@@ -29,6 +29,7 @@
 #include <vector>
 #include <limits>
 #include <algorithm>
+#include <random>
 #include <numeric>
 #include <numbers>
 //#include <iostream>
@@ -38,6 +39,18 @@
 
 // math
 namespace m {
+
+// ----------------------------------------------------------------------------
+// forward declarations
+// ----------------------------------------------------------------------------
+template<class t_vec> requires is_basic_vec<t_vec>
+t_vec cross(const t_vec& vec1, const t_vec& vec2);
+
+template<class t_mat, class t_real = typename t_mat::value_type>
+t_mat givens(std::size_t N, std::size_t i, std::size_t j, t_real angle)
+requires is_mat<t_mat>;
+// ----------------------------------------------------------------------------
+
 
 
 // ----------------------------------------------------------------------------
@@ -534,6 +547,79 @@ bool equals_0(const t_quat& quat,
 requires is_basic_quat<t_quat>
 {
 	return equals<t_quat>(quat, zero<t_quat>(), eps);
+}
+
+
+/**
+ * random scalar
+ */
+template<class t_scalar>
+t_scalar rand(t_scalar min=0., t_scalar max=1.)
+requires is_scalar<t_scalar>
+{
+	static std::mt19937 rng{std::random_device{}()};
+
+	if constexpr(std::is_integral_v<t_scalar>)
+		return std::uniform_int_distribution<t_scalar>(min, max)(rng);
+	else
+		return std::uniform_real_distribution<t_scalar>(min, max)(rng);
+}
+
+
+/**
+ * random matrix
+ */
+template<class t_mat>
+t_mat rand(std::size_t N1, std::size_t N2)
+requires is_mat<t_mat>
+{
+	using t_real = typename t_mat::value_type;
+	using t_size = decltype(t_mat{}.size1());
+
+	t_mat mat = create<t_mat>(N1, N2);
+
+	for(t_size i=0; i<mat.size1(); ++i)
+		for(t_size j=0; j<mat.size2(); ++j)
+			mat(i,j) = rand<t_real>();
+
+	return mat;
+}
+
+
+/**
+ * random vector
+ */
+template<class t_vec>
+t_vec rand(decltype(t_vec{}.size()) N)
+requires is_basic_vec<t_vec>
+{
+	using t_real = typename t_vec::value_type;
+	using t_size = decltype(t_vec{}.size());
+
+	t_vec vec = create<t_vec>(N);
+
+	for(t_size i=0; i<vec.size(); ++i)
+		vec[i] = rand<t_real>();
+
+	return vec;
+}
+
+
+/**
+ * random quaternion
+ */
+template<class t_quat>
+const t_quat& rand()
+requires is_basic_quat<t_quat>
+{
+	using t_real = typename t_quat::value_type;
+
+	// TODO: normalise
+	return t_quat(
+		rand<t_real>(),
+		rand<t_real>(),
+		rand<t_real>(),
+		rand<t_real>());
 }
 
 
@@ -1045,10 +1131,10 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat, class t_vec>
 t_vec mult(const t_mat& mat, const t_vec& vec,
-	std::size_t outsize = std::numeric_limits<std::size_t>::max(),
+	std::size_t outsize /*= std::numeric_limits<std::size_t>::max()*/,
 	std::size_t row_begin = 0, std::size_t col_begin = 0)
 requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
-&& m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+	&& m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
 {
 	using t_real = typename t_vec::value_type;
 	using t_size = decltype(t_mat{}.size1());
@@ -1833,9 +1919,7 @@ requires is_basic_vec<t_vec>
 		const t_vec& vec0 = *vecs.begin();
 		const t_vec& vec1 = *std::next(vecs.begin(), 1);
 
-		vec[0] = vec0[1]*vec1[2] - vec0[2]*vec1[1];
-		vec[1] = vec0[2]*vec1[0] - vec0[0]*vec1[2];
-		vec[2] = vec0[0]*vec1[1] - vec0[1]*vec1[0];
+		vec = cross<t_vec>(vec0, vec1);
 	}
 
 	// general case
@@ -2366,10 +2450,10 @@ requires is_mat<t_mat> && is_vec<t_vec>
 
 /**
  * 3-dim cross product
+ * @see https://en.wikipedia.org/wiki/Cross_product
  */
-template<class t_vec>
+template<class t_vec> requires is_basic_vec<t_vec>
 t_vec cross(const t_vec& vec1, const t_vec& vec2)
-requires is_basic_vec<t_vec>
 {
 	t_vec vec;
 
@@ -2421,24 +2505,33 @@ requires is_vec<t_vec> && is_mat<t_mat>
 {
 	using t_real = typename t_vec::value_type;
 
-	const t_real c = std::cos(angle);
-	const t_real s = std::sin(angle);
-
 	t_real len = 1;
 	if(!is_normalised)
 		len = norm<t_vec>(axis);
 
 	// ----------------------------------------------------
 	// special cases: rotations around [100], [010], [001]
-	if(equals(axis, create<t_vec>({len,0,0})))
-		return create<t_mat>({{1,0,0}, {0,c,s}, {0,-s,c}});
-	else if(equals(axis, create<t_vec>({0,len,0})))
-		return create<t_mat>({{c,0,-s}, {0,1,0}, {s,0,c}});
-	else if(equals(axis, create<t_vec>({0,0,len})))
-		return create<t_mat>({{c,s,0}, {-s,c,0}, {0,0,1}});
+	if(equals(axis, create<t_vec>({len, 0, 0})))
+	{
+		return givens<t_mat, t_real>(axis.size(), 1, 2, angle);
+		//return create<t_mat>({{1,0,0}, {0,c,s}, {0,-s,c}});
+	}
+	else if(equals(axis, create<t_vec>({0, len, 0})))
+	{
+		return givens<t_mat, t_real>(axis.size(), 2, 0, angle);
+		//return create<t_mat>({{c,0,-s}, {0,1,0}, {s,0,c}});
+	}
+	else if(equals(axis, create<t_vec>({0, 0, len})))
+	{
+		return givens<t_mat, t_real>(axis.size(), 0, 1, angle);
+		//return create<t_mat>({{c,s,0}, {-s,c,0}, {0,0,1}});
+	}
 
 	// ----------------------------------------------------
 	// general case
+	const t_real c = std::cos(angle);
+	const t_real s = std::sin(angle);
+
 	// project along rotation axis using |v><v|
 	t_mat matProj1 = projector<t_mat, t_vec>(axis/len, 1);
 
@@ -2520,20 +2613,25 @@ requires is_vec<t_vec> && is_mat<t_mat>
  * givens rotation matrix
  * @see https://en.wikipedia.org/wiki/Givens_rotation
  */
-template<class t_mat, class t_real = typename t_mat::value_type>
+template<class t_mat, class t_real /*= typename t_mat::value_type*/>
 t_mat givens(std::size_t N, std::size_t i, std::size_t j, t_real angle)
 requires is_mat<t_mat>
 {
-	if(j > i)
+	t_real sign = 1;
+
+	if(j < i)
+	{
+		sign = -1;
 		std::swap(i, j);
+	}
 
 	t_mat mat = unit<t_mat>(N, N);
 
 	const t_real s = std::sin(angle);
 	const t_real c = std::cos(angle);
 
-	mat(i, j) = s;
-	mat(j, i) = -s;
+	mat(i, j) = -sign*s;
+	mat(j, i) = +sign*s;
 	mat(i, i) = mat(j,j) = c;
 
 	return mat;
@@ -2572,13 +2670,25 @@ requires is_vec<t_vec> && is_mat<t_mat>
 	}
 	else
 	{
-		// TODO: n-dim basis
-		//       extend matBasis with linearly independent vectors until it has the full rank
+		// extend matBasis with linearly independent vectors until it has the full n-dim rank
+		for(t_size i=0; i<dim; ++i)
+		{
+			t_vec vecExt = rand<t_vec>(dim);
+			vecBasis.emplace_back(std::move(vecExt));
+
+			// TODO: check that the random vectors give full rank (i.e. det != 0)
+		}
+
+		vecBasis = orthonorm_sys<t_vec, std::vector>(vecBasis);
+		vecBasis.erase(std::prev(vecBasis.end(), 2), vecBasis.end());
+
+		matBasis = create<t_mat, t_vec>(vecBasis, true);
 	}
 
-	//bool inv_ok = false;
-	//std::tie(matBasis_inv, inv_ok) = inv<t_mat, t_vec>(matBasis);
-	matBasis_inv = trans<t_mat>(matBasis);
+	bool inv_ok = false;
+	std::tie(matBasis_inv, inv_ok) = inv<t_mat, t_vec>(matBasis);
+	//std::cout << std::boolalpha << inv_ok << std::endl;
+	//matBasis_inv = trans<t_mat>(matBasis);
 
 	return matBasis_inv * rot_01 * matBasis;
 }

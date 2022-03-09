@@ -37,6 +37,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_rotation,
 	using t_vector = m::vec<t_scalar, std::vector>;
 	using t_matrix = m::mat<t_scalar, std::vector>;
 
+
 	t_vector vecFrom = m::create<t_vector>({1, 0, 1});
 	t_vector vecTo = m::create<t_vector>({1, 0, 0});
 
@@ -46,4 +47,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_rotation,
 	BOOST_TEST((m::equals<t_matrix>(mat_1a, mat_1b, eps)));
 	std::cout << mat_1a << std::endl;
 	std::cout << mat_1b << std::endl;
+
+
+	t_vector vecFrom2 = m::create<t_vector>({1, 0, 1, 0, 1});
+	t_vector vecTo2 = m::create<t_vector>({1, 0, 0, 0, 0});
+	t_matrix mat_2 = m::rotation_nd<t_matrix, t_vector, t_scalar>(vecFrom2, vecTo2);
+
+	t_vector vecTo2b = (mat_2 * vecFrom2);
+	vecTo2b *= m::norm<t_vector>(vecTo2) / m::norm<t_vector>(vecFrom2);
+	std::cout << "vec: " << vecTo2b << std::endl;
+	BOOST_TEST((m::equals<t_vector>(vecTo2, vecTo2b, eps)));
 }
