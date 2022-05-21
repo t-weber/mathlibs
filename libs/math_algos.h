@@ -1286,13 +1286,13 @@ requires is_vec<t_vec>
 {
 	if(is_normalised)
 	{
-		return inner<t_vec>(vec, vecProj) * vecProj;
+		return inner<t_vec>(vecProj, vec) * vecProj;
 	}
 	else
 	{
 		const auto len = norm<t_vec>(vecProj);
 		const t_vec _vecProj = vecProj / len;
-		return inner<t_vec>(vec, _vecProj) * _vecProj;
+		return inner<t_vec>(_vecProj, vec) * _vecProj;
 	}
 }
 
@@ -1309,13 +1309,13 @@ requires is_vec<t_vec>
 {
 	if(is_normalised)
 	{
-		return inner<t_vec>(vec, vecProj);
+		return inner<t_vec>(vecProj, vec);
 	}
 	else
 	{
 		const auto len = norm<t_vec>(vecProj);
 		const t_vec _vecProj = vecProj / len;
-		return inner<t_vec>(vec, _vecProj);
+		return inner<t_vec>(_vecProj, vec);
 	}
 }
 
@@ -2391,7 +2391,7 @@ requires is_vec<t_vec>
 	{
 		const T len = norm<t_vec>(vecProj);
 		const t_vec _vecProj = vecProj / len;
-		T lam = inner<t_vec>(vec, _vecProj);
+		T lam = inner<t_vec>(_vecProj, vec);
 		return lam / len;
 	};
 
