@@ -2011,7 +2011,16 @@ requires is_vec<t_vec>
 			lineOrg, lineDir, planeNorm, plane_d, eps);
 
 		if(ty == 1 && lam >= 0. && lam < 1.)
+		{
+			// add intersection point
 			edgeInters.emplace_back(std::move(pos));
+		}
+		else if(ty == 2)
+		{
+			// line collinear to plane: add full line
+			edgeInters.push_back(lineOrg);
+			edgeInters.push_back(lineOrg + lineDir);
+		}
 	}
 
 	return edgeInters;
