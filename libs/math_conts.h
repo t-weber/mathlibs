@@ -743,6 +743,11 @@ public:
 
 	vec() = default;
 	explicit vec(std::size_t SIZE) : t_cont<T>(SIZE) {}
+	explicit vec(const T* elems, std::size_t SIZE) : t_cont<T>(SIZE)
+	{
+		for(std::size_t i=0; i<SIZE; ++i)
+			this->operator[](i) = elems[i];
+	}
 	~vec() = default;
 
 	const value_type& operator()(std::size_t i) const { return this->operator[](i); }
@@ -784,7 +789,15 @@ public:
 	using container_type = t_cont<T>;
 
 	mat() = default;
-	explicit mat(std::size_t ROWS, std::size_t COLS) : m_data(ROWS*COLS), m_rowsize{ROWS}, m_colsize{COLS} {}
+	explicit mat(std::size_t ROWS, std::size_t COLS)
+		: m_data(ROWS*COLS), m_rowsize{ROWS}, m_colsize{COLS} {}
+	explicit mat(const T* elems, std::size_t ROWS, std::size_t COLS)
+		: m_data(ROWS*COLS), m_rowsize{ROWS}, m_colsize{COLS}
+	{
+		for(std::size_t i=0; i<ROWS; ++i)
+			for(std::size_t j=0; j<COLS; ++j)
+				this->operator()(i, j) = elems[i*COLS + j];
+	}
 	~mat() = default;
 
 	std::size_t size1() const { return m_rowsize; }
@@ -810,6 +823,9 @@ public:
 	mat& operator-=(const mat& mat2) { return m_ops::operator-=(*this, mat2); }
 	mat& operator*=(value_type d) { return m_ops::operator*=(*this, d); }
 	mat& operator/=(value_type d) { return m_ops::operator/=(*this, d); }
+
+	constexpr const T* data() const { return m_data.data(); }
+	constexpr T* data() { return m_data.data(); }
 
 
 private:
