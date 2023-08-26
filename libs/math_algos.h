@@ -4708,6 +4708,66 @@ requires is_vec<t_vec> && is_quat<t_quat>
 	return quat;
 }
 
+
+/**
+ * component-wise min/max, e.g. for bounding box
+ */
+template<class t_vec, template<class...> class t_cont = std::initializer_list>
+std::pair<t_vec, t_vec> minmax_comp(const t_cont<t_vec>& vecs)
+requires is_basic_vec<t_vec>
+{
+	if(vecs.size() == 0)
+		return std::make_pair(t_vec{}, t_vec{});
+	else if(vecs.size() == 1)
+		return std::make_pair(*vecs.begin(), *vecs.begin());
+
+	using t_size = decltype(vecs[0].size());
+
+	const t_size dim = vecs[0].size();
+	t_vec min_vec = create<t_vec>(dim);
+	t_vec max_vec = create<t_vec>(dim);
+
+	for(t_size comp_idx=0; comp_idx<dim; ++comp_idx)
+	{
+		auto [min_iter, max_iter] = std::minmax_element(vecs.begin(), vecs.end(),
+			[comp_idx](const t_vec& vec0, const t_vec& vec1) -> bool
+		{
+			return vec0[comp_idx] < vec1[comp_idx];
+		});
+
+		min_vec[comp_idx] = (*min_iter)[comp_idx];
+		max_vec[comp_idx] = (*max_iter)[comp_idx];
+	}
+
+	return std::make_pair(min_vec, max_vec);
+}
+
+
+/**
+ * get min/max distance from a given point
+ */
+template<class t_vec, template<class...> class t_cont = std::initializer_list>
+std::pair<typename t_vec::value_type, typename t_vec::value_type>
+minmax_dist(const t_cont<t_vec>& vecs, const t_vec& pt)
+requires is_basic_vec<t_vec>
+{
+	if(vecs.size() == 0)
+		return std::make_pair(0, 0);
+
+	using t_real = typename t_vec::value_type;
+
+	std::vector<t_real> dists(vecs.size());
+	std::transform(vecs.begin(), vecs.end(), dists.begin(),
+		[&pt](const t_vec& vec) -> t_real
+	{
+		t_vec diff_vec = vec - pt;
+		return inner<t_vec>(diff_vec, diff_vec);
+	});
+
+	auto [min_dist, max_dist] = std::minmax_element(dists.begin(), dists.end());
+	return std::make_pair(std::sqrt(*min_dist), std::sqrt(*max_dist));
+}
+
 // ----------------------------------------------------------------------------
 
 }
