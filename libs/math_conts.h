@@ -14,11 +14,15 @@
 #define __MATH_CONTS_H__
 
 #include <boost/algorithm/string.hpp>
+
 #include <cassert>
 #include <vector>
 #include <array>
+#include <limits>
 #include <iostream>
 #include <iomanip>
+#include <cmath>
+
 #include "math_concepts.h"
 
 
@@ -204,6 +208,22 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
 
 
 /**
+ * chooses the rounded value for printing if it differs
+ * less than epsilon from the actual value
+ */
+template<class t_val>
+t_val rounded_val(t_val val,
+	t_val eps = std::sqrt(std::numeric_limits<t_val>::epsilon()))
+{
+	t_val rounded = std::round(val);
+	if(std::abs(val - rounded) <= eps)
+		val = rounded;
+
+	return val;
+}
+
+
+/**
  * operator <<
  */
 template<class t_vec>
@@ -215,7 +235,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
 
 	for(t_size i=0; i<N; ++i)
 	{
-		ostr << vec[i];
+		ostr << rounded_val(vec[i]);
 		if(i < N-1)
 			ostr << COLSEP << " ";
 	}
@@ -445,7 +465,7 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 	{
 		for(t_size col=0; col<COLS; ++col)
 		{
-			ostr << mat(row, col);
+			ostr << rounded_val(mat(row, col));
 			if(col < COLS-1)
 				ostr << COLSEP << " ";
 		}
@@ -683,10 +703,18 @@ template<class t_quat>
 std::ostream& operator<<(std::ostream& ostr, const t_quat& quat)
 requires m::is_basic_quat<t_quat>
 {
-	ostr << quat.real() << " + ";
-	ostr << quat.imag1() << "i" << " + ";
-	ostr << quat.imag2() << "j" << " + ";
-	ostr << quat.imag3() << "k";
+	t_quat quat_rounded
+	{
+		rounded_val(quat.real()),
+		rounded_val(quat.imag1()),
+		rounded_val(quat.imag2()),
+		rounded_val(quat.imag3()),
+	};
+
+	ostr << quat_rounded.real() << " + ";
+	ostr << quat_rounded.imag1() << "i" << " + ";
+	ostr << quat_rounded.imag2() << "j" << " + ";
+	ostr << quat_rounded.imag3() << "k";
 
 	return ostr;
 }
@@ -733,7 +761,8 @@ namespace m {
  * vector container
  * ----------------------------------------------------------------------------
  */
-template<class T = double, template<class...> class t_cont = std::vector>
+template<class T = double, template<class...> class t_cont = std::vector,
+	std::size_t FIXED_SIZE = 0>
 requires is_basic_vec<t_cont<T>> && is_dyn_vec<t_cont<T>>
 class vec : public t_cont<T>
 {
@@ -741,13 +770,17 @@ public:
 	using value_type = T;
 	using container_type = t_cont<T>;
 
-	vec() = default;
-	explicit vec(std::size_t SIZE) : t_cont<T>(SIZE) {}
-	explicit vec(const T* elems, std::size_t SIZE) : t_cont<T>(SIZE)
+	// if a fixed size is given, ignore the given dynamic sizes
+	explicit vec(std::size_t SIZE)
+		: t_cont<T>(FIXED_SIZE > 0 ? FIXED_SIZE : SIZE) {}
+
+	explicit vec(const T* elems, std::size_t SIZE) : vec{SIZE}
 	{
 		for(std::size_t i=0; i<SIZE; ++i)
 			this->operator[](i) = elems[i];
 	}
+
+	vec() = default;
 	~vec() = default;
 
 	const value_type& operator()(std::size_t i) const { return this->operator[](i); }
@@ -780,7 +813,8 @@ private:
  * matrix container
  * ----------------------------------------------------------------------------
  */
-template<class T = double, template<class...> class t_cont = std::vector>
+template<class T = double, template<class...> class t_cont = std::vector,
+	std::size_t FIXED_ROWS = 0, std::size_t FIXED_COLS = 0>
 requires is_basic_vec<t_cont<T>> && is_dyn_vec<t_cont<T>>
 class mat
 {
@@ -789,15 +823,22 @@ public:
 	using container_type = t_cont<T>;
 
 	mat() = default;
+
+	// if a fixed size is given, ignore the given dynamic sizes
 	explicit mat(std::size_t ROWS, std::size_t COLS)
-		: m_data(ROWS*COLS), m_rowsize{ROWS}, m_colsize{COLS} {}
+		: m_data(FIXED_ROWS > 0 && FIXED_COLS > 0 ? FIXED_ROWS*FIXED_COLS : ROWS*COLS),
+		m_rowsize{FIXED_ROWS > 0 ? FIXED_ROWS : ROWS},
+		m_colsize{FIXED_COLS > 0 ? FIXED_COLS : COLS}
+	{}
+
 	explicit mat(const T* elems, std::size_t ROWS, std::size_t COLS)
-		: m_data(ROWS*COLS), m_rowsize{ROWS}, m_colsize{COLS}
+		: mat{ROWS, COLS}
 	{
 		for(std::size_t i=0; i<ROWS; ++i)
 			for(std::size_t j=0; j<COLS; ++j)
 				this->operator()(i, j) = elems[i*COLS + j];
 	}
+
 	~mat() = default;
 
 	std::size_t size1() const { return m_rowsize; }
@@ -830,7 +871,7 @@ public:
 
 private:
 	container_type m_data{};
-	std::size_t m_rowsize{}, m_colsize{};
+	std::size_t m_rowsize{FIXED_ROWS}, m_colsize{FIXED_COLS};
 };
 
 

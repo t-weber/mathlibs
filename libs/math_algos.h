@@ -246,7 +246,7 @@ requires is_basic_quat<t_quat>
  * create a vector with given size if it is dynamic
  */
 template<class t_vec>
-t_vec create(decltype(t_vec{}.size()) size=3)
+t_vec create(decltype(t_vec{}.size()) size = 3)
 requires is_vec<t_vec>
 {
 	t_vec vec;
@@ -308,7 +308,6 @@ requires (is_vec<t_obj_dst> || is_mat<t_obj_dst>) && (is_vec<t_obj_src> || is_ma
 
 	return dst_objs;
 }
-
 
 
 /**
@@ -379,9 +378,11 @@ requires is_mat<t_mat_dst> && is_mat<t_mat_src>
 	using t_idx = decltype(mat.size1());
 
 	t_mat_dst matdst = create<t_mat_dst>(mat.size1(), mat.size2());
+	const t_idx act_size1 = std::min(mat.size1(), t_idx(matdst.size1()));
+	const t_idx act_size2 = std::min(mat.size2(), t_idx(matdst.size2()));
 
-	for(t_idx row_idx=0; row_idx<mat.size1(); ++row_idx)
-		for(t_idx col_idx=0; col_idx<mat.size2(); ++col_idx)
+	for(t_idx row_idx=0; row_idx<act_size1; ++row_idx)
+		for(t_idx col_idx=0; col_idx<act_size2; ++col_idx)
 			matdst(row_idx, col_idx) = T_dst(mat(row_idx, col_idx));
 
 	return matdst;
@@ -870,7 +871,7 @@ requires is_basic_vec<t_vec>
 	typename t_vec::value_type val(0);
 
 	const t_size I = vec1.size();
-	const t_size J = vec2.size();
+	[[__maybe_unused__]] const t_size J = vec2.size();
 	assert(I == J);
 
 	for(t_size i=0; i<I; ++i)
@@ -2551,7 +2552,7 @@ requires is_basic_vec<t_vec> && is_mat<t_mat>
  * @see (Merziger06), p. 208
  */
 template<class t_mat, class t_vec>
-t_mat rotation(const t_vec& axis, const typename t_vec::value_type angle, bool is_normalised=1)
+t_mat rotation(const t_vec& axis, const typename t_vec::value_type angle, bool is_normalised = true)
 requires is_vec<t_vec> && is_mat<t_mat>
 {
 	using t_real = typename t_vec::value_type;
@@ -2608,7 +2609,7 @@ requires is_vec<t_vec> && is_mat<t_mat>
  */
 template<class t_vec, class t_real = typename t_vec::value_type>
 std::tuple<t_vec, t_real> rotation_axis(const t_vec& vec1, const t_vec& vec2)
-requires is_vec<t_vec>
+requires is_vec<t_vec> && is_scalar<t_real>
 {
 	assert(vec1.size() == vec2.size());
 
@@ -2634,7 +2635,7 @@ requires is_vec<t_vec>
 template<class t_mat, class t_vec, class t_real = typename t_vec::value_type>
 t_mat rotation(const t_vec& vec1, const t_vec& vec2,
 	t_real eps = std::numeric_limits<t_real>::epsilon())
-requires is_vec<t_vec> && is_mat<t_mat>
+requires is_vec<t_vec> && is_mat<t_mat> && is_scalar<t_real>
 {
 	assert(vec1.size() == vec2.size());
 	using t_size = decltype(vec1.size());
@@ -3046,7 +3047,7 @@ requires is_vec<t_vec>
 	//using T = typename t_vec::value_type;
 
 	const t_cont<t_vec>& vertices = std::get<0>(tup);
-	const t_cont<t_vec>& normals = std::get<1>(tup);
+	//const t_cont<t_vec>& normals = std::get<1>(tup);
 	const t_cont<t_vec>& uvs = std::get<2>(tup);
 
 	t_cont<t_vec> vertices_new;
@@ -3100,22 +3101,21 @@ requires is_vec<t_vec>
  */
 template<class t_mat, class t_vec, template<class...> class t_cont = std::vector>
 std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
-create_plane(const t_vec& norm, typename t_vec::value_type l=1)
+create_plane(const t_vec& norm, typename t_vec::value_type l0 = 1,
+	std::optional<typename t_vec::value_type> _l1 = std::nullopt)
 requires is_vec<t_vec>
 {
-	//using t_real = typename t_vec::value_type;
-	//using t_mat = m::mat<t_real, std::vector>;
-	//using namespace m_ops;
-
 	t_vec norm_old = create<t_vec>({ 0, 0, -1 });
 	t_mat rot = rotation<t_mat, t_vec>(norm_old, norm);
 
+	typename t_vec::value_type l1 = _l1 ? *_l1 : l0;
+
 	t_cont<t_vec> vertices =
 	{
-		create<t_vec>({ -l, -l, 0. }),	// vertex 0
-		create<t_vec>({ +l, -l, 0. }),	// vertex 1
-		create<t_vec>({ +l, +l, 0. }),	// vertex 2
-		create<t_vec>({ -l, +l, 0. }),	// vertex 3
+		create<t_vec>({ -l0, -l1, 0. }),	// vertex 0
+		create<t_vec>({ +l0, -l1, 0. }),	// vertex 1
+		create<t_vec>({ +l0, +l1, 0. }),	// vertex 2
+		create<t_vec>({ -l0, +l1, 0. }),	// vertex 3
 	};
 
 	// rotate according to given normal
@@ -3127,10 +3127,10 @@ requires is_vec<t_vec>
 
 	t_cont<t_cont<t_vec>> uvs =
 	{{
-		create<t_vec>({ 0, 0 }),
-		create<t_vec>({ 1, 0 }),
-		create<t_vec>({ 1, 1 }),
-		create<t_vec>({ 0, 1 }),
+		create<t_vec>({ 0, 0 }),	// face 0
+		create<t_vec>({ 1, 0 }),	// face 1
+		create<t_vec>({ 1, 1 }),	// face 2
+		create<t_vec>({ 0, 1 }),	// face 3
 	}};
 
 	return std::make_tuple(vertices, faces, normals, uvs);
@@ -3144,7 +3144,7 @@ requires is_vec<t_vec>
  */
 template<class t_vec, template<class...> class t_cont = std::vector>
 std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
-create_disk(typename t_vec::value_type r = 1, std::size_t num_points=32)
+create_disk(typename t_vec::value_type r = 1, std::size_t num_points = 32)
 requires is_vec<t_vec>
 {
 	using t_real = typename t_vec::value_type;
@@ -3412,20 +3412,25 @@ requires is_vec<t_vec>
  */
 template<class t_vec, template<class...> class t_cont = std::vector>
 std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
-create_cube(typename t_vec::value_type l = 1)
+create_cube(typename t_vec::value_type l0 = 1,
+	std::optional<typename t_vec::value_type> _l1 = std::nullopt,
+	std::optional<typename t_vec::value_type> _l2 = std::nullopt)
 requires is_vec<t_vec>
 {
+	typename t_vec::value_type l1 = _l1 ? *_l1 : l0;
+	typename t_vec::value_type l2 = _l2 ? *_l2 : l0;
+
 	t_cont<t_vec> vertices =
 	{
-		create<t_vec>({ +l, -l, -l }),	// vertex 0
-		create<t_vec>({ -l, -l, -l }),	// vertex 1
-		create<t_vec>({ -l, +l, -l }),	// vertex 2
-		create<t_vec>({ +l, +l, -l }),	// vertex 3
+		create<t_vec>({ +l0, -l1, -l2 }),	// vertex 0
+		create<t_vec>({ -l0, -l1, -l2 }),	// vertex 1
+		create<t_vec>({ -l0, +l1, -l2 }),	// vertex 2
+		create<t_vec>({ +l0, +l1, -l2 }),	// vertex 3
 
-		create<t_vec>({ -l, -l, +l }),	// vertex 4
-		create<t_vec>({ +l, -l, +l }),	// vertex 5
-		create<t_vec>({ +l, +l, +l }),	// vertex 6
-		create<t_vec>({ -l, +l, +l }),	// vertex 7
+		create<t_vec>({ -l0, -l1, +l2 }),	// vertex 4
+		create<t_vec>({ +l0, -l1, +l2 }),	// vertex 5
+		create<t_vec>({ +l0, +l1, +l2 }),	// vertex 6
+		create<t_vec>({ -l0, +l1, +l2 }),	// vertex 7
 	};
 
 	t_cont<t_cont<std::size_t>> faces =
@@ -3516,6 +3521,29 @@ requires is_vec<t_vec>
 	// TODO
 	t_cont<t_cont<t_vec>> uvs =
 	{
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
+		{ create<t_vec>({0,0}), create<t_vec>({0,0}), create<t_vec>({0,0}) },
 	};
 
 	return std::make_tuple(vertices, faces, normals, uvs);
@@ -3568,11 +3596,13 @@ requires is_vec<t_vec>
 
 	t_cont<t_cont<t_vec>> uvs =
 	{
+		// upper half
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 
+		// lower half
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
 		{ create<t_vec>({0,0}), create<t_vec>({1,0}), create<t_vec>({0.5,1}) },
@@ -3918,7 +3948,7 @@ requires is_mat<t_mat> && is_vec<t_vec>
  * rotation matrix in homogeneous coordinates
  */
 template<class t_mat, class t_vec>
-t_mat hom_rotation(const t_vec& axis, const typename t_vec::value_type angle, bool is_normalised=1)
+t_mat hom_rotation(const t_vec& axis, const typename t_vec::value_type angle, bool is_normalised = true)
 requires is_vec<t_vec> && is_mat<t_mat>
 {
 	t_mat rot = rotation<t_mat, t_vec>(axis, angle, is_normalised);
@@ -3934,7 +3964,7 @@ requires is_vec<t_vec> && is_mat<t_mat>
  * mirror matrix in homogeneous coordinates
  */
 template<class t_mat, class t_vec>
-t_mat hom_mirror(const t_vec& axis, bool is_normalised=1)
+t_mat hom_mirror(const t_vec& axis, bool is_normalised = true)
 requires is_vec<t_vec> && is_mat<t_mat>
 {
 	t_mat mat = ortho_mirror_op<t_mat, t_vec>(axis, is_normalised);
@@ -3952,7 +3982,7 @@ requires is_vec<t_vec> && is_mat<t_mat>
  * mirror matrix in homogeneous coordinates with translation
  */
 template<class t_mat, class t_vec>
-t_mat hom_mirror(const t_vec& axis, const t_vec& pos, bool is_normalised=1)
+t_mat hom_mirror(const t_vec& axis, const t_vec& pos, bool is_normalised = true)
 requires is_vec<t_vec> && is_mat<t_mat>
 {
 	t_mat mirr = hom_mirror<t_mat, t_vec>(axis, is_normalised);
@@ -4085,7 +4115,7 @@ requires is_basic_vec<t_vec> && is_mat<typename t_vec::value_type>
  * proj = <sigma|vec>
  */
 template<class t_vec, class t_mat>
-t_mat proj_su2(const t_vec& vec, bool is_normalised=1)
+t_mat proj_su2(const t_vec& vec, bool is_normalised = true)
 requires is_vec<t_vec> && is_mat<t_mat>
 {
 	typename t_vec::value_type len = 1;
@@ -4709,6 +4739,9 @@ requires is_vec<t_vec> && is_quat<t_quat>
 }
 
 
+// ----------------------------------------------------------------------------
+
+
 /**
  * component-wise min/max, e.g. for bounding box
  */
@@ -4767,8 +4800,5 @@ requires is_basic_vec<t_vec>
 	auto [min_dist, max_dist] = std::minmax_element(dists.begin(), dists.end());
 	return std::make_pair(std::sqrt(*min_dist), std::sqrt(*max_dist));
 }
-
-// ----------------------------------------------------------------------------
-
 }
 #endif
