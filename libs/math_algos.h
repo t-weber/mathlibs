@@ -32,6 +32,7 @@
 #include <random>
 #include <numeric>
 #include <numbers>
+#include <optional>
 #include <cassert>
 #include <iostream>
 
