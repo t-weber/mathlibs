@@ -479,7 +479,7 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 
 
 /**
- * prints matrix in nicely formatted form
+ * prints a matrix in a nicely formatted form
  */
 template<class t_mat>
 std::ostream& niceprint(std::ostream& ostr, const t_mat& mat)

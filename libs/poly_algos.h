@@ -386,11 +386,8 @@ create_plane(const t_vec& norm, typename t_vec::value_type l0 = 1,
 	std::optional<typename t_vec::value_type> _l1 = std::nullopt)
 requires is_vec<t_vec>
 {
-	t_vec norm_old = create<t_vec>({ 0, 0, -1 });
-	t_mat rot = rotation<t_mat, t_vec>(norm_old, norm);
-
+	//using namespace m_ops;
 	typename t_vec::value_type l1 = _l1 ? *_l1 : l0;
-
 	t_cont<t_vec> vertices =
 	{
 		create<t_vec>({ -l0, -l1, 0. }),	// vertex 0
@@ -399,7 +396,9 @@ requires is_vec<t_vec>
 		create<t_vec>({ -l0, +l1, 0. }),	// vertex 3
 	};
 
-	// rotate according to given normal
+	// rotate vertices according to given normal
+	t_vec norm_old = create<t_vec>({ 0, 0, -1 });
+	t_mat rot = rotation<t_mat, t_vec>(norm_old, norm);
 	for(t_vec& vec : vertices)
 		vec = rot * vec;
 

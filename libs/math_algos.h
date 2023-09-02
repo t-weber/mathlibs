@@ -2633,18 +2633,23 @@ requires is_vec<t_vec> && is_mat<t_mat>
 	if(equals(axis, create<t_vec>({len, 0, 0})))
 	{
 		return givens<t_mat, t_real>(axis.size(), 1, 2, angle);
+		//t_real c = std::cos(angle), s = std::sin(angle);
 		//return create<t_mat>({{1,0,0}, {0,c,s}, {0,-s,c}});
 	}
 	else if(equals(axis, create<t_vec>({0, len, 0})))
 	{
 		return givens<t_mat, t_real>(axis.size(), 2, 0, angle);
+		//t_real c = std::cos(angle), s = std::sin(angle);
 		//return create<t_mat>({{c,0,-s}, {0,1,0}, {s,0,c}});
 	}
 	else if(equals(axis, create<t_vec>({0, 0, len})))
 	{
 		return givens<t_mat, t_real>(axis.size(), 0, 1, angle);
+		//t_real c = std::cos(angle), s = std::sin(angle);
 		//return create<t_mat>({{c,s,0}, {-s,c,0}, {0,0,1}});
 	}
+
+	// TODO: handle 180 degrees rotation / mirroring
 
 	// ----------------------------------------------------
 	// general case
