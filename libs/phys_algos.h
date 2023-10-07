@@ -20,7 +20,7 @@
 #ifndef __PHYS_ALGOS_H__
 #define __PHYS_ALGOS_H__
 
-#include "math_algos.h"
+#include "matrix_algos.h"
 
 
 // math

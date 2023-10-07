@@ -1,7 +1,7 @@
 /**
- * containers and operators for use with math algorithms
+ * containers and operators for use with matrix algorithms
  * @author Tobias Weber (orcid: 0000-0002-7230-1932)
- * @date 2018-2021
+ * @date 2018-2023
  * @license see 'LICENSE' file
  *
  * @see general references for algorithms:
@@ -23,7 +23,7 @@
 #include <iomanip>
 #include <cmath>
 
-#include "math_concepts.h"
+#include "matrix_concepts.h"
 
 
 // separator tokens

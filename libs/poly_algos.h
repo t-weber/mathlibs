@@ -20,7 +20,7 @@
 #ifndef __MATH_ALGOS_POLYS_H__
 #define __MATH_ALGOS_POLYS_H__
 
-#include "math_algos.h"
+#include "matrix_algos.h"
 
 
 // math

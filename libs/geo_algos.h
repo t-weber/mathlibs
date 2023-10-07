@@ -27,9 +27,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "math_algos.h"
+#include "matrix_algos.h"
 #include "graph_algos.h"
-#include "math_conts.h"
+#include "matrix_conts.h"
 #include "geo_conts.h"
 #include "graph_conts.h"
 #include "helpers.h"

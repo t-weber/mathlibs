@@ -18,7 +18,7 @@
 #include <numeric>
 #include <cassert>
 
-#include "math_algos.h"
+#include "matrix_algos.h"
 
 
 // math namespace

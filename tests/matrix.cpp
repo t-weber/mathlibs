@@ -1,5 +1,5 @@
 /**
- * matrix class test
+ * (tensor-class derived) matrix class tests
  * @author Tobias Weber
  * @date Februray 2022
  * @license see 'LICENSE' file
@@ -9,7 +9,7 @@
 
 #include "tensor.h"
 #include "tensor_stat.h"
-#include "math_algos.h"
+#include "matrix_algos.h"
 
 #include <iostream>
 
@@ -23,7 +23,7 @@ void test_matrix()
 
 	using t_mat22 = m::Matrix<t_real, 2, 2>;
 	using t_mat11 = m::Matrix<t_real, 1, 1>;
-	//using t_vec2 = m::Vector<t_real, 2>;
+	using t_vec2 = m::Vector<t_real, 2>;
 
 	t_mat22 m1{}, m2{};
 	std::cout << "dims: " << m1.size1() << " " << m1.size2() << std::endl;
@@ -62,6 +62,7 @@ void test_matrix()
 	}
 
 	std::cout << "determinant: " << m1.determinant() << std::endl;
+	std::cout << "determinant (general function): " << m::det<t_mat22, t_vec2>(m1) << std::endl;
 
 	t_mat22 invmat = m1.inverse();
 	std::cout << "inverse:\n";
@@ -72,12 +73,39 @@ void test_matrix()
 		std::cout << std::endl;
 	}
 
+	/*auto [invmat2, invmat2_ok] = m::inv<t_mat22, t_vec2>(m1);
+	std::cout << "inverse (general function), ok = " << invmat2_ok << ":\n";
+	for(std::size_t i=0; i<invmat2.size1(); ++i)
+	{
+		for(std::size_t j=0; j<invmat2.size2(); ++j)
+			std::cout << invmat2(i, j) << " ";
+		std::cout << std::endl;
+	}*/
+
 	t_mat22 ident = invmat * m1;
 	std::cout << "identity:\n";
 	for(std::size_t i=0; i<ident.size1(); ++i)
 	{
 		for(std::size_t j=0; j<ident.size2(); ++j)
 			std::cout << ident(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	t_mat22 transp = m1.transpose();
+	std::cout << "transposed:\n";
+	for(std::size_t i=0; i<transp.size1(); ++i)
+	{
+		for(std::size_t j=0; j<transp.size2(); ++j)
+			std::cout << transp(i, j) << " ";
+		std::cout << std::endl;
+	}
+
+	t_mat22 transp2 = m::trans(m1);
+	std::cout << "transposed (general function):\n";
+	for(std::size_t i=0; i<transp2.size1(); ++i)
+	{
+		for(std::size_t j=0; j<transp2.size2(); ++j)
+			std::cout << transp2(i, j) << " ";
 		std::cout << std::endl;
 	}
 }
@@ -186,7 +214,6 @@ void test_matrix_dyn()
 
 	std::cout << "determinant: " << m1.determinant() << std::endl;
 
-
 	t_mat invmat = m1.inverse();
 	std::cout << "inverse:\n";
 	for(std::size_t i=0; i<invmat.size1(); ++i)
@@ -195,6 +222,15 @@ void test_matrix_dyn()
 			std::cout << invmat(i, j) << " ";
 		std::cout << std::endl;
 	}
+
+	/*auto [invmat2, invmat2_ok] = m::inv<t_mat, t_vec>(m1);
+	std::cout << "inverse (direct call), ok = " << invmat2_ok << ":\n";
+	for(std::size_t i=0; i<invmat2.size1(); ++i)
+	{
+		for(std::size_t j=0; j<invmat2.size2(); ++j)
+			std::cout << invmat2(i, j) << " ";
+		std::cout << std::endl;
+	}*/
 
 	t_mat ident = invmat * m1;
 	std::cout << "identity:\n";

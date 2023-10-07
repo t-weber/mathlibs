@@ -1,7 +1,7 @@
 /**
  * concepts and adapters for math classes
  * @author Tobias Weber (orcid: 0000-0002-7230-1932)
- * @date 2017-2021
+ * @date 2017-2023
  * @license see 'LICENSE' file
  */
 

@@ -1,7 +1,7 @@
 /**
- * container-agnostic math algorithms
+ * container-agnostic matrix algorithms
  * @author Tobias Weber (orcid: 0000-0002-7230-1932)
- * @date 2017-2021
+ * @date 2017-2023
  * @license see 'LICENSE' file
  *
  * @see references for algorithms:
@@ -20,8 +20,7 @@
 #ifndef __MATH_ALGOS_H__
 #define __MATH_ALGOS_H__
 
-#include "math_concepts.h"
-//#include "math_conts.h"
+#include "matrix_concepts.h"
 
 #include <cmath>
 #include <complex>

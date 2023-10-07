@@ -14,9 +14,9 @@
 #ifndef __GEO_CONTS_H__
 #define __GEO_CONTS_H__
 
-#include "math_algos.h"
-#include "math_conts.h"
-#include "math_concepts.h"
+#include "matrix_algos.h"
+#include "matrix_conts.h"
+#include "matrix_concepts.h"
 
 #include <iostream>
 #include <sstream>

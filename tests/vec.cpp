@@ -10,8 +10,8 @@
 #include <vector>
 #include <iostream>
 
-#include "math_algos.h"
-#include "math_conts.h"
+#include "matrix_algos.h"
+#include "matrix_conts.h"
 
 using namespace m;
 using namespace m_ops;

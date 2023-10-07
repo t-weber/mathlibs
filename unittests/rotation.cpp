@@ -20,8 +20,8 @@
 namespace test = boost::unit_test;
 namespace ty = boost::typeindex;
 
-#include "libs/math_algos.h"
-#include "libs/math_conts.h"
+#include "libs/matrix_algos.h"
+#include "libs/matrix_conts.h"
 
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_rotation,

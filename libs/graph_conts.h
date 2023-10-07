@@ -17,8 +17,8 @@
 #include <optional>
 #include <type_traits>
 
-#include "math_algos.h"
-#include "math_conts.h"
+#include "matrix_algos.h"
+#include "matrix_conts.h"
 #include "helpers.h"
 
 

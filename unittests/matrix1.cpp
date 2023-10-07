@@ -22,7 +22,7 @@ namespace ty = boost::typeindex;
 
 #include "libs/tensor.h"
 #include "libs/tensor_stat.h"
-#include "libs/math_algos.h"
+#include "libs/matrix_algos.h"
 
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_matrix1, t_scalar, decltype(std::tuple<float, double, long double>{}))
