@@ -20,6 +20,9 @@
 #ifndef __PHYS_ALGOS_H__
 #define __PHYS_ALGOS_H__
 
+#include <functional>
+#include <limits>
+
 #include "matrix_algos.h"
 
 
@@ -200,6 +203,45 @@ requires is_mat<t_mat> && is_vec<t_vec>
 
 	return std::make_tuple(I, P_f/I);
 }
+
+
+/**
+ * calculates the berry connection
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_mat, class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+t_vec berry_connection(
+	const std::function<t_mat(const t_vec_real& pos)>& get_evecs,
+	const t_vec_real& pos, t_real delta = std::numeric_limits<t_real>::epsilon())
+requires is_mat<t_mat> && is_vec<t_vec>
+{
+	constexpr const t_cplx imag{0, 1};
+
+	using t_size = decltype(pos.size());
+	constexpr const t_size N = pos.size();
+
+	const t_mat evecs = get_evecs(pos);
+	t_vec conn = create<t_vec>(N);
+
+	for(t_size i = 0; i < N; ++i)
+	{
+		t_vec_real pos1 = pos;
+		pos1[0] += delta;
+
+		// differentiate eigenvector matrix
+		t_mat evecs_diff = (get_evecs(pos1) - evecs) / delta;
+
+		t_mat evecs_H = m::herm(evecs);
+		t_mat C = evecs_H * evecs_diff;
+
+		conn[i] = C(i, i);
+	}
+
+	return conn * imag;
+}
+
 
 }
 #endif

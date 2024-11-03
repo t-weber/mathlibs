@@ -289,7 +289,7 @@ requires is_mat<t_mat> && is_basic_vec<t_vec>
 
 	for(t_idx row_idx=0; row_idx<mat.size1(); ++row_idx)
 		for(t_idx col_idx=0; col_idx<mat.size2(); ++col_idx)
-			vec.push_back(T_dst(mat(row_idx, col_idx)));
+			vec.push_back(static_cast<T_dst>(mat(row_idx, col_idx)));
 
 	return vec;
 }
@@ -309,6 +309,27 @@ requires (is_vec<t_obj_dst> || is_mat<t_obj_dst>) && (is_vec<t_obj_src> || is_ma
 		dst_objs.emplace_back(convert<t_obj_dst, t_obj_src>(src_obj));
 
 	return dst_objs;
+}
+
+
+/**
+ * create a vector from a matrix' diagonal elements
+ */
+template<class t_vec, class t_mat>
+t_vec diagonal(const t_mat& mat)
+requires is_mat<t_mat> && is_basic_vec<t_vec>
+{
+	//using T_src = typename t_mat::value_type;
+	using T_dst = typename t_vec::value_type;
+	using t_idx = decltype(mat.size1());
+
+	const t_idx N = std::min(mat.size1(), mat.size2());
+
+	t_vec vec = create<t_vec>(N);
+	for(t_idx i = 0; i < N; ++i)
+			vec[i] = static_cast<T_dst>(mat(i, i));
+
+	return vec;
 }
 
 
@@ -385,7 +406,7 @@ requires is_mat<t_mat_dst> && is_mat<t_mat_src>
 
 	for(t_idx row_idx=0; row_idx<act_size1; ++row_idx)
 		for(t_idx col_idx=0; col_idx<act_size2; ++col_idx)
-			matdst(row_idx, col_idx) = T_dst(mat(row_idx, col_idx));
+			matdst(row_idx, col_idx) = static_cast<T_dst>(mat(row_idx, col_idx));
 
 	return matdst;
 }
@@ -405,7 +426,7 @@ requires is_mat<t_mat_dst> && is_mat<t_mat_src>
 
 	for(t_idx row_idx=0; row_idx<std::min(mat_src.size1(), mat_dst.size1()); ++row_idx)
 		for(t_idx col_idx=0; col_idx<std::min(mat_src.size2(), mat_dst.size2()); ++col_idx)
-			mat_dst(row_idx, col_idx) = T_dst(mat_src(row_idx, col_idx));
+			mat_dst(row_idx, col_idx) = static_cast<T_dst>(mat_src(row_idx, col_idx));
 }
 
 
@@ -423,7 +444,7 @@ requires is_vec<t_vec_dst> && is_vec<t_vec_src>
 	t_vec_dst vecdst = create<t_vec_dst>(vec.size());
 
 	for(t_idx i=0; i<vec.size(); ++i)
-		vecdst[i] = T_dst(vec[i]);
+		vecdst[i] = static_cast<T_dst>(vec[i]);
 
 	return vecdst;
 }
