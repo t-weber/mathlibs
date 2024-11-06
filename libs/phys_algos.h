@@ -102,6 +102,7 @@ requires is_basic_vec<t_vec>
 }
 
 
+
 /**
  * Blume-Maleev equation
  * @returns scattering intensity and final polarisation vector
@@ -205,41 +206,104 @@ requires is_mat<t_mat> && is_vec<t_vec>
 }
 
 
+
 /**
  * calculates the berry connection
+ * @see equ. 7 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
  * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
  */
 template<class t_mat, class t_vec, class t_vec_real,
 	typename t_cplx = typename t_vec::value_type,
 	typename t_real = typename t_cplx::value_type>
-t_vec berry_connection(
-	const std::function<t_mat(const t_vec_real& pos)>& get_evecs,
-	const t_vec_real& pos, t_real delta = std::numeric_limits<t_real>::epsilon())
+std::vector<t_vec> berry_connection(
+	const std::function<t_mat(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& Q, t_real delta = std::numeric_limits<t_real>::epsilon())
 requires is_mat<t_mat> && is_vec<t_vec>
 {
+	using t_size = decltype(Q.size());
 	constexpr const t_cplx imag{0, 1};
 
-	using t_size = decltype(pos.size());
-	constexpr const t_size N = pos.size();
+	const t_mat evecs = get_evecs(Q);
+	constexpr const t_size BANDS = evecs.size1();
+	/*constexpr*/ const t_size DIM = Q.size();
 
-	const t_mat evecs = get_evecs(pos);
-	t_vec conn = create<t_vec>(N);
+	// to ensure correct commutators
+	t_mat comm = unit<t_mat>(BANDS);
 
-	for(t_size i = 0; i < N; ++i)
+	std::vector<t_vec> connections{};
+	connections.reserve(BANDS);
+	for(t_size band = 0; band < BANDS; ++band)
 	{
-		t_vec_real pos1 = pos;
-		pos1[0] += delta;
-
-		// differentiate eigenvector matrix
-		t_mat evecs_diff = (get_evecs(pos1) - evecs) / delta;
-
-		t_mat evecs_H = m::herm(evecs);
-		t_mat C = evecs_H * evecs_diff;
-
-		conn[i] = C(i, i);
+		connections.emplace_back(create<t_vec>(DIM));
+		if(band > BANDS / 2)
+			comm(band, band) = -1;
 	}
 
-	return conn * imag;
+	for(t_size dim = 0; dim < DIM; ++dim)
+	{
+		t_vec_real Q1 = Q;
+		Q1[dim] += delta;
+
+		// differentiate eigenvector matrix
+		t_mat evecs_diff = (get_evecs(Q1) - evecs) / delta;
+
+		t_mat evecs_H = m::herm(evecs);
+		t_mat C = comm * evecs_H * comm * evecs_diff;
+
+		for(t_size band = 0; band < BANDS; ++band)
+			connections[band][dim] = C(band, band) * imag;
+	}
+
+	return connections;
+}
+
+
+
+/**
+ * calculates the berry curvature
+ * @see equ. 8 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_mat, class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+std::vector<t_cplx> berry_curvature(
+	const std::function<t_mat(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& Q, t_real delta = std::numeric_limits<t_real>::epsilon())
+requires is_mat<t_mat> && is_vec<t_vec>
+{
+	using t_size = decltype(Q.size());
+
+	const t_mat evecs = get_evecs(Q);
+	constexpr const t_size BANDS = evecs.size1();
+	/*constexpr*/ const t_size DIM = Q.size();
+	assert(DIM == 3);
+
+	t_vec_real h = Q, k = Q;
+	h[0] += delta;
+	k[1] += delta;
+
+	std::vector<t_vec> connections =
+		berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(get_evecs, Q, delta);
+	std::vector<t_vec> connections_h =
+		berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(get_evecs, h, delta);
+	std::vector<t_vec> connections_k =
+		berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(get_evecs, k, delta);
+
+	std::vector<t_cplx> curvatures{};
+	curvatures.reserve(BANDS);
+
+	for(t_size band = 0; band < BANDS; ++band)
+	{
+		// differentiate connection's y component with respect to h
+		t_cplx curv1 = (connections_h[band][1] - connections[band][1]) / delta;
+		// differentiate connection's x component with respect to k
+		t_cplx curv2 = (connections_k[band][0] - connections[band][0]) / delta;
+
+		curvatures.emplace_back(curv1 - curv2);
+	}
+
+	return curvatures;
 }
 
 

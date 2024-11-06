@@ -23,11 +23,11 @@ void test_topo()
 	using t_real = double;
 	using t_cplx = std::complex<t_real>;
 	using t_mat = m::Matrix<t_cplx, 2, 2>;
-	using t_vec = m::Vector<t_cplx, 2>;
 	using t_mat_real = m::Matrix<t_real, 2, 2>;
-	using t_vec_real = m::Vector<t_real, 2>;
+	using t_vec = m::Vector<t_cplx, 3>;
+	using t_vec_real = m::Vector<t_real, 3>;
 
-	auto get_state = [](const t_vec_real& pos) -> t_mat
+	auto get_state = [](const t_vec_real& Q) -> t_mat
 	{
 		// TODO
 		t_mat state{};
@@ -36,12 +36,22 @@ void test_topo()
 		return state;
 	};
 
-	t_vec_real pos = m::create<t_vec_real>({ 0, 0 });
-	t_vec conn = m::berry_connection<t_mat, t_vec, t_vec_real>(get_state, pos, 0.01);
+	t_vec_real Q = m::create<t_vec_real>({ 0, 0, 0 });
+	std::vector<t_vec> conns =
+		m::berry_connection<t_mat, t_vec, t_vec_real>(get_state, Q, 0.01);
 	std::cout << "conn = [ ";
-	for(std::size_t i = 0; i < conn.size(); ++i)
-		std::cout << conn[i] << " ";
+	for(std::size_t i = 0; i < conns[0].size(); ++i)
+		std::cout << conns[0][i] << " ";
 	std::cout << "]" << std::endl;
+
+	std::vector<t_cplx> curvs =
+		m::berry_curvature<t_mat, t_vec, t_vec_real>(get_state, Q, 0.01);
+	std::cout << "curv = [ ";
+	for(const t_cplx& curv : curvs)
+		std::cout << curv << " ";
+	std::cout << "]" << std::endl;
+
+	std::cout << std::endl;
 }
 
 
