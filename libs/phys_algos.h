@@ -235,7 +235,7 @@ requires is_mat<t_mat> && is_vec<t_vec>
 	for(t_size band = 0; band < BANDS; ++band)
 	{
 		connections.emplace_back(create<t_vec>(DIM));
-		if(band > BANDS / 2)
+		if(band >= BANDS / 2)
 			comm(band, band) = -1;
 	}
 
