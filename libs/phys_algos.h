@@ -1,7 +1,7 @@
 /**
  * container-agnostic math algorithms
  * @author Tobias Weber (orcid: 0000-0002-7230-1932)
- * @date 2017-2021
+ * @date 2017-2024
  * @license see 'LICENSE' file
  *
  * @see references for algorithms:
