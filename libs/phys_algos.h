@@ -365,9 +365,10 @@ requires is_mat<t_mat_band> && is_mat<t_mat_dim> &&
 
 		for(t_size dim1 = 0; dim1 < DIM; ++dim1)
 		{
+			curvature(dim1, dim1) = t_real(0);
 			const std::vector<t_vec_dim>& connections_plus1 = connections_plus[dim1];
 
-			for(t_size dim2 = 0; dim2 < DIM; ++dim2)
+			for(t_size dim2 = dim1 + 1; dim2 < DIM; ++dim2)
 			{
 				const std::vector<t_vec_dim>& connections_plus2 = connections_plus[dim2];
 
@@ -379,6 +380,7 @@ requires is_mat<t_mat_band> && is_mat<t_mat_dim> &&
 
 				// curvature tensor element
 				curvature(dim1, dim2) = curv1 - curv2;
+				curvature(dim2, dim1) = -curvature(dim1, dim2);
 			}
 		}
 
@@ -386,6 +388,71 @@ requires is_mat<t_mat_band> && is_mat<t_mat_dim> &&
 	}
 
 	return curvatures;
+}
+
+
+
+/**
+ * calculates the 2d chern number
+ * @see equ. 9 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_mat, class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+std::vector<t_cplx> chern_numbers_2d(
+	const std::function<t_mat(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& G, t_real bz = 0.5,  // brillouin zone boundary
+	t_real delta_diff = std::numeric_limits<t_real>::epsilon(),
+	t_real delta_int = std::numeric_limits<t_real>::epsilon(),
+	decltype(t_vec{}.size()) dim1 = 0, decltype(t_vec{}.size()) dim2 = 1)
+requires is_mat<t_mat> && is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cplx>
+{
+	using t_size = decltype(t_vec{}.size());
+	std::vector<t_cplx> nums;  // chern numbers per band
+
+	auto int_boundary = [get_evecs, delta_diff, delta_int, bz, &nums](
+		int dim, t_vec_real& Q)
+	{
+		for(t_real x = -bz; x < bz; x += delta_int)
+		{
+			std::vector<t_vec> conns = berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(
+				get_evecs, Q, delta_diff);
+
+			// initialise by resetting chern numbers to zeros
+			if(!nums.size())
+				nums.resize(conns.size(), t_cplx{});
+
+			// numerically integrate along boundary segment
+			for(t_size band = 0; band < conns.size(); ++band)
+				nums[band] += conns[band][dim] * delta_int;
+
+			Q[dim] += bz;
+		}
+	};
+
+	// bottom part of boundary
+	t_vec_real Q = G;
+	Q[dim2] -= bz;
+	int_boundary(dim1, Q);
+
+	// top part of boundary
+	Q = G;
+	Q[dim2] += bz;
+	int_boundary(dim1, Q);
+
+	// left part of boundary
+	Q = G;
+	Q[dim1] -= bz;
+	int_boundary(dim2, Q);
+
+	// right part of boundary
+	Q = G;
+	Q[dim1] += bz;
+	int_boundary(dim2, Q);
+
+	// should be integers
+	return nums;
 }
 
 
