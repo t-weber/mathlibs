@@ -42,7 +42,7 @@ namespace m_ops {
  */
 template<class t_vec>
 const t_vec& operator+(const t_vec& vec1)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	return vec1;
 }
@@ -53,7 +53,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator-(const t_vec& vec1)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	using t_size = decltype(t_vec{}.size());
 	t_vec vec = m::create<t_vec>(vec1.size());
@@ -70,7 +70,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator+(const t_vec& vec1, const t_vec& vec2)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	using t_size = decltype(t_vec{}.size());
 
@@ -93,7 +93,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator-(const t_vec& vec1, const t_vec& vec2)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	return vec1 + (-vec2);
 }
@@ -104,7 +104,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator*(const t_vec& vec1, typename t_vec::value_type d)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	using t_size = decltype(t_vec{}.size());
 	t_vec vec = m::create<t_vec>(vec1.size());
@@ -121,7 +121,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 typename t_vec::value_type operator*(const t_vec& vec1, const t_vec& vec2)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	return inner<t_vec>(vec1, vec2);
 }
@@ -132,7 +132,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator*(typename t_vec::value_type d, const t_vec& vec)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	//&& !m::is_basic_mat<typename t_vec::value_type>	// hack!
 {
 	return vec * d;
@@ -143,7 +143,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec operator/(const t_vec& vec1, typename t_vec::value_type d)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 /*
 	// doesn't work for integer value types, because 1/d is always 0 for d>1
@@ -166,7 +166,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec& operator+=(t_vec& vec1, const t_vec& vec2)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec1 = vec1 + vec2;
 	return vec1;
@@ -177,7 +177,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec& operator-=(t_vec& vec1, const t_vec& vec2)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec1 = vec1 - vec2;
 	return vec1;
@@ -189,7 +189,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec& operator*=(t_vec& vec1, typename t_vec::value_type d)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec1 = vec1 * d;
 	return vec1;
@@ -200,7 +200,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 t_vec& operator/=(t_vec& vec1, typename t_vec::value_type d)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec1 = vec1 / d;
 	return vec1;
@@ -214,6 +214,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
 template<class t_val>
 t_val rounded_val(t_val val,
 	t_val eps = std::sqrt(std::numeric_limits<t_val>::epsilon()))
+requires m::is_scalar<t_val>
 {
 	t_val rounded = std::round(val);
 	if(std::abs(val - rounded) <= eps)
@@ -223,17 +224,35 @@ t_val rounded_val(t_val val,
 }
 
 
+template<class t_val, class t_real = typename t_val::value_type>
+t_val rounded_val(const t_val& val,
+	t_real eps = std::sqrt(std::numeric_limits<t_real>::epsilon()))
+requires m::is_complex<t_val>
+{
+	t_real rounded_re = std::round(val.real());
+	t_real rounded_im = std::round(val.imag());
+
+	t_val new_val = val;
+	if(std::abs(val.real() - rounded_re) <= eps)
+		new_val.real(rounded_re);
+	if(std::abs(val.imag() - rounded_im) <= eps)
+		new_val.imag(rounded_im);
+
+	return new_val;
+}
+
+
 /**
  * operator <<
  */
 template<class t_vec>
 std::ostream& operator<<(std::ostream& ostr, const t_vec& vec)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	using t_size = decltype(t_vec{}.size());
 	const t_size N = vec.size();
 
-	for(t_size i=0; i<N; ++i)
+	for(t_size i = 0; i < N; ++i)
 	{
 		ostr << rounded_val(vec[i]);
 		if(i < N-1)
@@ -249,7 +268,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_vec>
 std::istream& operator>>(std::istream& istr, t_vec& vec)
-requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
+requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec.clear();
 
@@ -284,7 +303,7 @@ requires m::is_basic_vec<t_vec> && m::is_dyn_vec<t_vec>
  */
 template<class t_mat>
 const t_mat& operator+(const t_mat& mat1)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	return mat1;
 }
@@ -295,7 +314,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator-(const t_mat& mat1)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	using t_size = decltype(t_mat{}.size1());
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
@@ -313,7 +332,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator+(const t_mat& mat1, const t_mat& mat2)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	using t_size = decltype(t_mat{}.size1());
 
@@ -337,7 +356,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator-(const t_mat& mat1, const t_mat& mat2)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	return mat1 + (-mat2);
 }
@@ -348,7 +367,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator*(const t_mat& mat1, typename t_mat::value_type d)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	using t_size = decltype(t_mat{}.size1());
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
@@ -366,7 +385,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator*(typename t_mat::value_type d, const t_mat& mat)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	return mat * d;
 }
@@ -377,7 +396,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator/(const t_mat& mat1, typename t_mat::value_type d)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 /*
 	// doesn't work for integer value types, because 1/d is always 0 for d>1
@@ -388,9 +407,9 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
 	using t_size = decltype(t_mat{}.size1());
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
 
-	for(t_size i=0; i<mat1.size1(); ++i)
-		for(t_size j=0; j<mat1.size2(); ++j)
-			mat(i,j) = mat1(i,j) / d;
+	for(t_size i = 0; i < mat1.size1(); ++i)
+		for(t_size j = 0; j < mat1.size2(); ++j)
+			mat(i, j) = mat1(i, j) / d;
 
 	return mat;
 }
@@ -401,7 +420,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat operator*(const t_mat& mat1, const t_mat& mat2)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	using t_size = decltype(t_mat{}.size1());
 
@@ -431,7 +450,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat& operator*=(t_mat& mat1, typename t_mat::value_type d)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	mat1 = mat1 * d;
 	return mat1;
@@ -442,7 +461,7 @@ requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 t_mat& operator/=(t_mat& mat1, typename t_mat::value_type d)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	mat1 = mat1 / d;
 	return mat1;
@@ -461,9 +480,9 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 	const t_size ROWS = mat.size1();
 	const t_size COLS = mat.size2();
 
-	for(t_size row=0; row<ROWS; ++row)
+	for(t_size row = 0; row < ROWS; ++row)
 	{
-		for(t_size col=0; col<COLS; ++col)
+		for(t_size col = 0; col < COLS; ++col)
 		{
 			ostr << rounded_val(mat(row, col));
 			if(col < COLS-1)
@@ -483,21 +502,21 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
  */
 template<class t_mat>
 std::ostream& niceprint(std::ostream& ostr, const t_mat& mat)
-requires m::is_basic_mat<t_mat> && m::is_dyn_mat<t_mat>
+requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 {
 	using t_size = decltype(t_mat{}.size1());
 
 	const t_size ROWS = mat.size1();
 	const t_size COLS = mat.size2();
 
-	for(t_size i=0; i<ROWS; ++i)
+	for(t_size i = 0; i < ROWS; ++i)
 	{
 		ostr << "(";
-		for(t_size j=0; j<COLS; ++j)
+		for(t_size j = 0; j < COLS; ++j)
 			ostr << std::setw(ostr.precision()*1.5) << std::right << mat(i,j);
 		ostr << ")";
 
-		if(i < ROWS-1)
+		if(i < ROWS - 1)
 			ostr << "\n";
 	}
 

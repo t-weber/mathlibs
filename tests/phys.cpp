@@ -10,6 +10,7 @@
 #include "tensor.h"
 #include "tensor_stat.h"
 #include "matrix_algos.h"
+#include "matrix_conts.h"
 #include "phys_algos.h"
 
 #include <complex>
@@ -18,11 +19,13 @@
 
 void test_topo()
 {
+	using namespace m_ops;
 	std::cout << "\n" << __func__ << std::endl;
 
 	using t_real = double;
 	using t_cplx = std::complex<t_real>;
 	using t_mat = m::Matrix<t_cplx, 2, 2>;
+	using t_mat3 = m::Matrix<t_cplx, 3, 3>;
 	using t_mat_real = m::Matrix<t_real, 2, 2>;
 	using t_vec = m::Vector<t_cplx, 3>;
 	using t_vec_real = m::Vector<t_real, 3>;
@@ -44,13 +47,18 @@ void test_topo()
 		std::cout << conns[0][i] << " ";
 	std::cout << "]" << std::endl;
 
-	std::vector<t_cplx> curvs =
-		m::berry_curvature<t_mat, t_vec, t_vec_real>(get_state, Q, 0.01);
+	std::vector<t_cplx> curvs_2d =
+		m::berry_curvature_2d<t_mat, t_vec, t_vec_real>(get_state, Q, 0.01);
 	std::cout << "curv = [ ";
-	for(const t_cplx& curv : curvs)
+	for(const t_cplx& curv : curvs_2d)
 		std::cout << curv << " ";
 	std::cout << "]" << std::endl;
 
+	std::vector<t_mat3> curvs =
+		m::berry_curvature<t_mat, t_mat3, t_vec, t_vec_real>(get_state, Q, 0.01);
+	std::cout << "curs =\n";
+	for(const t_mat3& curv : curvs)
+		std::cout << curv << "\n";
 	std::cout << std::endl;
 }
 
