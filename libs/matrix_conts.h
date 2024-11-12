@@ -248,6 +248,7 @@ requires m::is_complex<t_val>
 template<class t_vec>
 std::ostream& operator<<(std::ostream& ostr, const t_vec& vec)
 requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
+	&& (!std::is_same_v<t_vec, std::string>)
 {
 	using t_size = decltype(t_vec{}.size());
 	const t_size N = vec.size();

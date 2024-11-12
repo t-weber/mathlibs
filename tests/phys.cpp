@@ -61,8 +61,15 @@ void test_topo()
 
 	std::vector<t_cplx> nums_2d =
 		m::chern_numbers_2d<t_mat, t_vec, t_vec_real>(get_state, Q, 0.5, 0.01, 0.01);
-	std::cout << "chern = [ ";
+	std::cout << "chern (via boundary) = [ ";
 		for(const t_cplx& curv : nums_2d)
+			std::cout << curv << " ";
+	std::cout << "]" << std::endl;
+
+	std::vector<t_cplx> nums_2d_ar =
+		m::chern_numbers_2d_area<t_mat, t_vec, t_vec_real>(get_state, Q, 0.5, 0.01, 0.01);
+	std::cout << "chern (via area) = [ ";
+		for(const t_cplx& curv : nums_2d_ar)
 			std::cout << curv << " ";
 	std::cout << "]" << std::endl;
 
