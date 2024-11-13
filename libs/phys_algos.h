@@ -437,7 +437,7 @@ requires is_mat<t_mat> && is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cp
 	// bottom part of boundary
 	t_vec_real Q = G;
 	Q[dim2] -= bz;
-	int_boundary(dim1, Q, -1);
+	int_boundary(dim1, Q, 1);
 
 	// top part of boundary
 	Q = G;
