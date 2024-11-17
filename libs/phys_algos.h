@@ -207,6 +207,8 @@ requires is_mat<t_mat> && is_vec<t_vec>
 }
 
 
+// ============================================================================
+
 
 /**
  * calculates the berry connection
@@ -261,6 +263,52 @@ requires is_mat<t_mat> && is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cp
 
 
 /**
+ * calculates the berry connection for orthonormal eigenvectors
+ * @see equ. 7 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+std::vector<t_vec> berry_connection(
+	const std::function<std::vector<t_vec>(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& Q, t_real delta = std::numeric_limits<t_real>::epsilon())
+requires is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cplx>
+{
+	using t_size = decltype(Q.size());
+	constexpr const t_cplx imag{0, 1};
+
+	const std::vector<t_vec> evecs = get_evecs(Q);
+	/*constexpr*/ const t_size BANDS = evecs.size();
+	/*constexpr*/ const t_size DIM = Q.size();
+
+	std::vector<t_vec> connections{};
+	connections.reserve(BANDS);
+	for(t_size band = 0; band < BANDS; ++band)
+		connections.emplace_back(create<t_vec>(DIM));
+
+	for(t_size dim = 0; dim < DIM; ++dim)
+	{
+		// differentiate with respect to component "dim"
+		t_vec_real Q1 = Q;
+		Q1[dim] += delta;
+		const std::vector<t_vec> evecs_delta = get_evecs(Q1);
+
+		for(t_size band = 0; band < BANDS; ++band)
+		{
+			// differentiate eigenvectors
+			t_vec evec_diff = (evecs_delta[band] - evecs[band]) / delta;
+			// scalar product between eigenvector and its derivative
+			connections[band][dim] = m::conj(evecs[band]) * evec_diff * imag;
+		}
+	}
+
+	return connections;
+}
+
+
+
+/**
  * calculates the 2d berry curvature
  * @see equ. 8 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
  * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
@@ -291,6 +339,56 @@ requires is_mat<t_mat> && is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cp
 		berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(get_evecs, h, delta);
 	std::vector<t_vec> connections_k =
 		berry_connection<t_mat, t_vec, t_vec_real, t_cplx, t_real>(get_evecs, k, delta);
+
+	std::vector<t_cplx> curvatures{};
+	curvatures.reserve(BANDS);
+
+	for(t_size band = 0; band < BANDS; ++band)
+	{
+		// differentiate connection's y component with respect to h
+		t_cplx curv1 = (connections_h[band][dim2] - connections[band][dim2]) / delta;
+		// differentiate connection's x component with respect to k
+		t_cplx curv2 = (connections_k[band][dim1] - connections[band][dim1]) / delta;
+
+		curvatures.emplace_back(curv1 - curv2);
+	}
+
+	return curvatures;
+}
+
+
+
+/**
+ * calculates the 2d berry curvature for orthonormal eigenvectors
+ * @see equ. 8 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+std::vector<t_cplx> berry_curvature_2d(
+	const std::function<std::vector<t_vec>(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& Q, t_real delta = std::numeric_limits<t_real>::epsilon(),
+	decltype(t_vec{}.size()) dim1 = 0, decltype(t_vec{}.size()) dim2 = 1)
+requires is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cplx>
+{
+	using t_size = decltype(Q.size());
+
+	const std::vector<t_vec> evecs = get_evecs(Q);
+	/*constexpr*/ const t_size BANDS = evecs.size();
+	/*constexpr*/ const t_size DIM = Q.size();
+	assert(DIM == 3);
+
+	t_vec_real h = Q, k = Q;
+	h[dim1] += delta;
+	k[dim2] += delta;
+
+	std::vector<t_vec> connections =
+		berry_connection<t_vec, t_vec_real, t_cplx, t_real>(get_evecs, Q, delta);
+	std::vector<t_vec> connections_h =
+		berry_connection<t_vec, t_vec_real, t_cplx, t_real>(get_evecs, h, delta);
+	std::vector<t_vec> connections_k =
+		berry_connection<t_vec, t_vec_real, t_cplx, t_real>(get_evecs, k, delta);
 
 	std::vector<t_cplx> curvatures{};
 	curvatures.reserve(BANDS);
@@ -371,6 +469,87 @@ requires is_mat<t_mat_band> && is_mat<t_mat_dim> &&
 			for(t_size dim2 = dim1 + 1; dim2 < DIM; ++dim2)
 			{
 				const std::vector<t_vec_dim>& connections_plus2 = connections_plus[dim2];
+
+				// differentiate connection's y component with respect to h
+				t_cplx curv1 = (connections_plus1[band][dim2] - connections[band][dim2]) / delta;
+
+				// differentiate connection's x component with respect to k
+				t_cplx curv2 = (connections_plus2[band][dim1] - connections[band][dim1]) / delta;
+
+				// curvature tensor element
+				curvature(dim1, dim2) = curv1 - curv2;
+				curvature(dim2, dim1) = -curvature(dim1, dim2);
+			}
+		}
+
+		curvatures.emplace_back(std::move(curvature));
+	}
+
+	return curvatures;
+}
+
+
+
+/**
+ * calculates the full berry curvature tensor for orthonormal eigenvectors
+ * @see equ. 8 in https://doi.org/10.1146/annurev-conmatphys-031620-104715
+ * @see https://en.wikipedia.org/wiki/Berry_connection_and_curvature
+ */
+template<class t_mat, class t_vec, class t_vec_real,
+	typename t_cplx = typename t_vec::value_type,
+	typename t_real = typename t_cplx::value_type>
+std::vector<t_mat> berry_curvature(
+	const std::function<std::vector<t_vec>(const t_vec_real& Q)>& get_evecs,
+	const t_vec_real& Q, t_real delta = std::numeric_limits<t_real>::epsilon())
+requires is_mat<t_mat> && is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cplx>
+{
+	using t_size = decltype(Q.size());
+
+	const std::vector<t_vec> evecs = get_evecs(Q);
+	/*constexpr*/ const t_size BANDS = evecs.size();
+	/*constexpr*/ const t_size DIM = Q.size();
+
+	// berry connections at Q + [0, ..., 0, delta, 0, ..., 0]
+	std::vector<std::vector<t_vec>> connections_plus;
+	connections_plus.reserve(DIM);
+	for(t_size dim = 0; dim < DIM; ++dim)
+	{
+		t_vec_real Q_plus = Q;
+		Q_plus[dim] += delta;
+
+		std::vector<t_vec> connection =
+			berry_connection<t_vec, t_vec_real, t_cplx, t_real>(
+				get_evecs, Q_plus, delta);
+
+		/*for(const t_vec& vec : connection)
+		{
+			using namespace m_ops;
+			std::cout << "dim = " << dim << ": " << vec << std::endl;
+		}*/
+
+		connections_plus.emplace_back(std::move(connection));
+	}
+
+	// berry connection at Q
+	std::vector<t_vec> connections =
+		berry_connection<t_vec, t_vec_real, t_cplx, t_real>(
+			get_evecs, Q, delta);
+
+	std::vector<t_mat> curvatures{};
+	curvatures.reserve(BANDS);
+
+	for(t_size band = 0; band < BANDS; ++band)
+	{
+		t_mat curvature = create<t_mat>(DIM, DIM);
+
+		for(t_size dim1 = 0; dim1 < DIM; ++dim1)
+		{
+			curvature(dim1, dim1) = t_real(0);
+			const std::vector<t_vec>& connections_plus1 = connections_plus[dim1];
+
+			for(t_size dim2 = dim1 + 1; dim2 < DIM; ++dim2)
+			{
+				const std::vector<t_vec>& connections_plus2 = connections_plus[dim2];
 
 				// differentiate connection's y component with respect to h
 				t_cplx curv1 = (connections_plus1[band][dim2] - connections[band][dim2]) / delta;
