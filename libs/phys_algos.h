@@ -298,8 +298,8 @@ requires is_vec<t_vec> && is_vec<t_vec_real> && is_complex<t_cplx>
 		{
 			// differentiate eigenvectors
 			t_vec evec_diff = (evecs_delta[band] - evecs[band]) / delta;
-			// scalar product between eigenvector and its derivative
-			connections[band][dim] = m::conj(evecs[band]) * evec_diff * imag;
+			// scalar product between eigenvector and its derivative (already conjugates lhs)
+			connections[band][dim] = /*m::conj*/(evecs[band]) * evec_diff * imag;
 		}
 	}
 
