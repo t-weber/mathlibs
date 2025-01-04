@@ -41,7 +41,7 @@ requires is_vec<t_vec>
 	{
 		auto iter = lineverts.begin();
 
-		while(1)
+		while(true)
 		{
 			const t_vec& linevec1 = *iter;
 			std::advance(iter, 1); if(iter == lineverts.end()) break;
@@ -84,6 +84,7 @@ requires is_vec<t_vec>
 
 
 /**
+ * TODO: use calc_delaunay(...) instead
  * triangulates polygon object, takes input from e.g. create_cube()
  * @returns [triangles, face normals, vertex uvs]
  */
@@ -133,7 +134,7 @@ requires is_vec<t_vec>
 		}
 
 		// iterate over face vertices
-		while(1)
+		while(true)
 		{
 			std::advance(iterFaceVertIdx, 1);
 			if(iterFaceVertIdx == iterFaces->end())
@@ -407,15 +408,84 @@ requires is_vec<t_vec>
 
 	t_cont<t_cont<t_vec>> uvs =
 	{{
-		create<t_vec>({ 0, 0 }),	// face 0
-		create<t_vec>({ 1, 0 }),	// face 1
-		create<t_vec>({ 1, 1 }),	// face 2
-		create<t_vec>({ 0, 1 }),	// face 3
+		create<t_vec>({ 0, 0 }),	// face vertex 0
+		create<t_vec>({ 1, 0 }),	// face vertex 1
+		create<t_vec>({ 1, 1 }),	// face vertex 2
+		create<t_vec>({ 0, 1 }),	// face vertex 3
 	}};
 
 	return std::make_tuple(vertices, faces, normals, uvs);
 }
 
+
+/**
+ * create a patch
+ * @returns [vertices, face vertex indices, face normals, face uvs]
+ */
+template<class t_func, class t_mat, class t_vec,
+	template<class...> class t_cont = std::vector,
+	class t_real = typename t_vec::value_type>
+std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
+create_patch(const t_func& func,
+	t_real width = 1., t_real height = 1.,
+	std::size_t num_points = 16)
+requires is_vec<t_vec>
+{
+	// create 2d grid in (x, y) for patch
+	t_cont<t_vec> vertices;
+	t_cont<t_cont<std::size_t>> faces;
+	t_cont<t_vec> normals;
+	t_cont<t_cont<t_vec>> uvs;
+
+	vertices.reserve(num_points * num_points);
+	faces.reserve((num_points - 1) * (num_points - 1));
+	normals.reserve((num_points - 1) * (num_points - 1));
+	uvs.reserve((num_points - 1) * (num_points - 1));
+
+	for(std::size_t j = 0; j < num_points; ++j)
+	{
+		t_real y = -height*0.5 + height *
+			static_cast<t_real>(j)/static_cast<t_real>(num_points - 1);
+
+		for(std::size_t i = 0; i < num_points; ++i)
+		{
+			t_real x = -width*0.5 + width *
+				static_cast<t_real>(i)/static_cast<t_real>(num_points - 1);
+
+			t_real z = func(x, y);
+			vertices.emplace_back(m::create<t_vec>({ x, y, z }));
+
+			if(i > 0 && j > 0)
+			{
+				std::size_t idx_ij = j*num_points + i;
+				std::size_t idx_im1j = j*num_points + i - 1;
+				std::size_t idx_i1jm1 = (j - 1)*num_points + i;
+				std::size_t idx_im1jm1 = (j - 1)*num_points + i - 1;
+
+				faces.emplace_back(t_cont<std::size_t>{{
+					idx_im1jm1, idx_i1jm1, idx_ij, idx_im1j
+				}});
+
+				t_vec n = cross<t_vec>({
+					vertices[idx_i1jm1] - vertices[idx_im1jm1],
+					vertices[idx_ij] - vertices[idx_im1jm1]
+				});
+				n /= norm<t_vec>(n);
+
+				normals.emplace_back(std::move(n));
+
+				uvs.emplace_back(t_cont<t_vec>{{
+					create<t_vec>({ 0, 0 }),
+					create<t_vec>({ 1, 0 }),
+					create<t_vec>({ 1, 1 }),
+					create<t_vec>({ 0, 1 }),
+				}});
+			}
+		}
+	}
+
+	return std::make_tuple(vertices, faces, normals, uvs);
+}
 
 
 /**
@@ -463,8 +533,8 @@ requires is_vec<t_vec>
 
 	t_cont<std::size_t> face(num_points);
 	std::iota(face.begin(), face.end(), 0);
-	faces.push_back(face);
-	normals.push_back(create<t_vec>({0,0,1}));
+	faces.emplace_back(std::move(face));
+	normals.emplace_back(create<t_vec>({0,0,1}));
 
 	return std::make_tuple(vertices, faces, normals, uvs);
 }
@@ -487,7 +557,7 @@ requires is_vec<t_vec>
 	vertices.reserve(1 + num_points*2);
 
 	// inner vertex
-	vertices.push_back(create<t_vec>({ 0, 0, h }));
+	vertices.emplace_back(create<t_vec>({ 0, 0, h }));
 
 	for(std::size_t pt=0; pt<num_points; ++pt)
 	{
@@ -511,17 +581,17 @@ requires is_vec<t_vec>
 
 	for(std::size_t face=0; face<num_points; ++face)
 	{
-			std::size_t idx0 = face + 1;	// outer 1
-			std::size_t idx1 = (face == num_points-1 ? 1 : face + 2);	// outer 2
-			std::size_t idx2 = 0;	// inner
+		std::size_t idx0 = face + 1;	// outer 1
+		std::size_t idx1 = (face == num_points-1 ? 1 : face + 2);	// outer 2
+		std::size_t idx2 = 0;	// inner
 
-			faces.push_back({ idx0, idx1, idx2 });
+		faces.emplace_back(t_cont<std::size_t>{ idx0, idx1, idx2 });
 
 
-			t_vec n = cross<t_vec>({vertices[idx2]-vertices[idx0], vertices[idx1]-vertices[idx0]});
-			n /= norm<t_vec>(n);
+		t_vec n = cross<t_vec>({vertices[idx2]-vertices[idx0], vertices[idx1]-vertices[idx0]});
+		n /= norm<t_vec>(n);
 
-			normals.push_back(n);
+		normals.emplace_back(std::move(n));
 	}
 
 
@@ -544,7 +614,7 @@ requires is_vec<t_vec>
 		faces.insert(faces.end(), disk_faces_bottom.begin(), disk_faces_bottom.end());
 
 		for(const auto& normal : disk_normals)
-			normals.push_back(-normal);
+			normals.emplace_back(-normal);
 
 		uvs.insert(uvs.end(), disk_uvs.begin(), disk_uvs.end());
 	}
@@ -602,13 +672,14 @@ requires is_vec<t_vec>
 		t_vec n = cross<t_vec>({vertices[idx3]-vertices[idx0], vertices[idx1]-vertices[idx0]});
 		n /= norm<t_vec>(n);
 
-		faces.push_back({ idx0, idx1, idx2, idx3 });
+		faces.emplace_back(t_cont<std::size_t>{ idx0, idx1, idx2, idx3 });
 		normals.emplace_back(std::move(n));
 
 
 		t_real u1 = vertices_u[idx0];
 		t_real u2 = (face >= num_points-1 ? 1 : vertices_u[idx3]);
-		uvs.push_back({ create<t_vec>({u1,1}), create<t_vec>({u1,0}),
+		uvs.emplace_back(t_cont<t_vec>{
+			create<t_vec>({u1,1}), create<t_vec>({u1,0}),
 			create<t_vec>({u2,0}), create<t_vec>({u2,1}) });
 	}
 
@@ -623,7 +694,7 @@ requires is_vec<t_vec>
 		const t_vec top = create<t_vec>({ 0, 0, h*t_real(0.5) });
 
 		for(const auto& disk_vert : disk_vertices)
-			vertices.push_back(disk_vert - top);
+			vertices.emplace_back(disk_vert - top);
 
 		auto disk_faces_bottom = disk_faces;
 		for(auto& disk_face : disk_faces_bottom)
@@ -635,7 +706,7 @@ requires is_vec<t_vec>
 		faces.insert(faces.end(), disk_faces_bottom.begin(), disk_faces_bottom.end());
 
 		for(const auto& normal : disk_normals)
-			normals.push_back(-normal);
+			normals.emplace_back(-normal);
 
 		uvs.insert(uvs.end(), disk_uvs.begin(), disk_uvs.end());
 
@@ -645,7 +716,7 @@ requires is_vec<t_vec>
 		if(cyltype == 1)	// top lid
 		{
 			for(const auto& disk_vert : disk_vertices)
-				vertices.push_back(disk_vert + top);
+				vertices.emplace_back(disk_vert + top);
 
 			auto disk_faces_top = disk_faces;
 			for(auto& disk_face : disk_faces_top)
@@ -654,7 +725,7 @@ requires is_vec<t_vec>
 			faces.insert(faces.end(), disk_faces_top.begin(), disk_faces_top.end());
 
 			for(const auto& normal : disk_normals)
-				normals.push_back(normal);
+				normals.emplace_back(normal);
 
 			uvs.insert(uvs.end(), disk_uvs.begin(), disk_uvs.end());
 		}
@@ -667,7 +738,7 @@ requires is_vec<t_vec>
 				create_cone<t_vec, t_cont>(arrow_r, arrow_h, bConeCap, num_points);
 
 			for(const auto& cone_vert : cone_vertices)
-				vertices.push_back(cone_vert + top);
+				vertices.emplace_back(cone_vert + top);
 
 			auto cone_faces_top = cone_faces;
 			for(auto& cone_face : cone_faces_top)

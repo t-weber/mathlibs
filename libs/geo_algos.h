@@ -1226,7 +1226,7 @@ std::tuple<
 	std::vector<std::vector<t_vec>>,	// quadratic edge
 	std::vector<t_line>,	// helper lines
 	t_graph>
-calc_voro(const std::vector<t_line>& lines)
+calc_voro([[maybe_unused]] const std::vector<t_line>& lines)
 requires m::is_vec<t_vec> && is_graph<t_graph>
 {
 #ifdef __GEO2D_USE_BOOST_POLY__
@@ -1779,7 +1779,7 @@ requires m::is_vec<t_vec>
 			for(int i=0; i<dim; ++i)
 				_verts.push_back(t_real_qhull{vert[i]});
 
-		qh::Qhull qh{"triag", dim, int(_verts.size()/dim), _verts.data(), only_hull ? "Qt" : "v Qu QJ" };
+		qh::Qhull qh{"triag", dim, int(_verts.size()/dim), _verts.data(), only_hull ? "QJ" : "d v Qu" };
 		if(qh.hasQhullMessage())
 			std::cout << qh.qhullMessage() << std::endl;
 

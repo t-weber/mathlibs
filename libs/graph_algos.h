@@ -18,6 +18,7 @@
 #include <concepts>
 #include <iostream>
 
+#include "helpers.h"
 #include "matrix_algos.h"
 #include "matrix_conts.h"
 
