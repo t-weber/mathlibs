@@ -213,9 +213,17 @@ requires is_vec<t_vec>
 	while(itervert != vertices.end())
 	{
 		const t_vec& vec1 = *itervert;
-		std::advance(itervert, 1); if(itervert == vertices.end()) break;
+
+		std::advance(itervert, 1);
+		if(itervert == vertices.end())
+			break;
+
 		const t_vec& vec2 = *itervert;
-		std::advance(itervert, 1); if(itervert == vertices.end()) break;
+
+		std::advance(itervert, 1);
+		if(itervert == vertices.end())
+			break;
+
 		const t_vec& vec3 = *itervert;
 		std::advance(itervert, 1);
 
@@ -261,9 +269,15 @@ requires is_vec<t_vec>
 		{
 			// uv coords at vertices
 			const t_vec& uv1 = *iteruv;
-			std::advance(iteruv, 1); if(iteruv == uvs.end()) break;
+			std::advance(iteruv, 1);
+			if(iteruv == uvs.end())
+				break;
+
 			const t_vec& uv2 = *iteruv;
-			std::advance(iteruv, 1); if(iteruv == uvs.end()) break;
+			std::advance(iteruv, 1);
+			if(iteruv == uvs.end())
+				break;
+
 			const t_vec& uv3 = *iteruv;
 			std::advance(iteruv, 1);
 
@@ -308,7 +322,7 @@ subdivide_triangles(const std::tuple<t_cont<t_vec>, t_cont<t_vec>, t_cont<t_vec>
 requires is_vec<t_vec>
 {
 	auto tupDiv = tup;
-	for(std::size_t i=0; i<iters; ++i)
+	for(std::size_t i = 0; i < iters; ++i)
 		tupDiv = subdivide_triangles<t_vec, t_cont>(tupDiv);
 	return tupDiv;
 }
@@ -383,7 +397,7 @@ requires is_vec<t_vec>
  */
 template<class t_mat, class t_vec, template<class...> class t_cont = std::vector>
 std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
-create_plane(const t_vec& norm, typename t_vec::value_type l0 = 1,
+create_plane(const t_vec& normal, typename t_vec::value_type l0 = 1,
 	std::optional<typename t_vec::value_type> _l1 = std::nullopt)
 requires is_vec<t_vec>
 {
@@ -399,12 +413,12 @@ requires is_vec<t_vec>
 
 	// rotate vertices according to given normal
 	t_vec norm_old = create<t_vec>({ 0, 0, -1 });
-	t_mat rot = rotation<t_mat, t_vec>(norm_old, norm);
+	t_mat rot = rotation<t_mat, t_vec>(norm_old, normal);
 	for(t_vec& vec : vertices)
 		vec = rot * vec;
 
 	t_cont<t_cont<std::size_t>> faces = { { 0, 1, 2, 3 } };
-	t_cont<t_vec> normals = { norm };
+	t_cont<t_vec> normals = { normal };
 
 	t_cont<t_cont<t_vec>> uvs =
 	{{
@@ -419,7 +433,7 @@ requires is_vec<t_vec>
 
 
 /**
- * create a patch
+ * create a patch, z = f(x, y)
  * @returns [vertices, face vertex indices, face normals, face uvs]
  */
 template<class t_func, class t_mat, class t_vec,
@@ -428,57 +442,72 @@ template<class t_func, class t_mat, class t_vec,
 std::tuple<t_cont<t_vec>, t_cont<t_cont<std::size_t>>, t_cont<t_vec>, t_cont<t_cont<t_vec>>>
 create_patch(const t_func& func,
 	t_real width = 1., t_real height = 1.,
-	std::size_t num_points = 16)
+	std::size_t num_points_x = 16, std::size_t num_points_y = 16,
+	const t_vec& normal = create<t_vec>({ 0, 0, 1 }))
 requires is_vec<t_vec>
 {
+	// rotate according to given normal
+	t_vec norm_old = create<t_vec>({ 0, 0, 1 });
+	t_mat rot = rotation<t_mat, t_vec>(norm_old, normal);
+
 	// create 2d grid in (x, y) for patch
 	t_cont<t_vec> vertices;
 	t_cont<t_cont<std::size_t>> faces;
 	t_cont<t_vec> normals;
 	t_cont<t_cont<t_vec>> uvs;
 
-	vertices.reserve(num_points * num_points);
-	faces.reserve((num_points - 1) * (num_points - 1));
-	normals.reserve((num_points - 1) * (num_points - 1));
-	uvs.reserve((num_points - 1) * (num_points - 1));
+	vertices.reserve(num_points_x * num_points_y);
+	faces.reserve((num_points_x - 1) * (num_points_y - 1));
+	normals.reserve((num_points_x - 1) * (num_points_y - 1));
+	uvs.reserve((num_points_x - 1) * (num_points_y - 1));
 
-	for(std::size_t j = 0; j < num_points; ++j)
+	for(std::size_t j = 0; j < num_points_y; ++j)
 	{
 		t_real y = -height*0.5 + height *
-			static_cast<t_real>(j)/static_cast<t_real>(num_points - 1);
+			static_cast<t_real>(j)/static_cast<t_real>(num_points_y - 1);
 
-		for(std::size_t i = 0; i < num_points; ++i)
+		t_real v0 = static_cast<t_real>(j - 1) / static_cast<t_real>(num_points_x - 1);
+		t_real v1 = static_cast<t_real>(j) / static_cast<t_real>(num_points_y - 1);
+
+		for(std::size_t i = 0; i < num_points_x; ++i)
 		{
+			// create vertices
 			t_real x = -width*0.5 + width *
-				static_cast<t_real>(i)/static_cast<t_real>(num_points - 1);
+				static_cast<t_real>(i)/static_cast<t_real>(num_points_x - 1);
 
 			t_real z = func(x, y);
-			vertices.emplace_back(m::create<t_vec>({ x, y, z }));
+			vertices.emplace_back(rot * m::create<t_vec>({ x, y, z }));
 
+			// create faces, normals and uv coords
 			if(i > 0 && j > 0)
 			{
-				std::size_t idx_ij = j*num_points + i;
-				std::size_t idx_im1j = j*num_points + i - 1;
-				std::size_t idx_i1jm1 = (j - 1)*num_points + i;
-				std::size_t idx_im1jm1 = (j - 1)*num_points + i - 1;
+				// face
+				std::size_t idx_ij = j*num_points_x + i;
+				std::size_t idx_im1j = j*num_points_x + i - 1;
+				std::size_t idx_i1jm1 = (j - 1)*num_points_x + i;
+				std::size_t idx_im1jm1 = (j - 1)*num_points_x + i - 1;
 
 				faces.emplace_back(t_cont<std::size_t>{{
 					idx_im1jm1, idx_i1jm1, idx_ij, idx_im1j
 				}});
 
+				// normal
 				t_vec n = cross<t_vec>({
 					vertices[idx_i1jm1] - vertices[idx_im1jm1],
 					vertices[idx_ij] - vertices[idx_im1jm1]
 				});
 				n /= norm<t_vec>(n);
+				normals.emplace_back(rot * n);
 
-				normals.emplace_back(std::move(n));
+				// uv
+				t_real u0 = static_cast<t_real>(i - 1) / static_cast<t_real>(num_points_x - 1);
+				t_real u1 = static_cast<t_real>(i) / static_cast<t_real>(num_points_x - 1);
 
 				uvs.emplace_back(t_cont<t_vec>{{
-					create<t_vec>({ 0, 0 }),
-					create<t_vec>({ 1, 0 }),
-					create<t_vec>({ 1, 1 }),
-					create<t_vec>({ 0, 1 }),
+					create<t_vec>({ u0, v0 }),  // face vertex 0
+					create<t_vec>({ u1, v0 }),  // face vertex 1
+					create<t_vec>({ u1, v1 }),  // face vertex 2
+					create<t_vec>({ u0, v1 }),  // face vertex 3
 				}});
 			}
 		}
@@ -641,7 +670,7 @@ requires is_vec<t_vec>
 	t_cont<t_vec> vertices;
 	t_cont<t_real> vertices_u;
 
-	for(std::size_t pt=0; pt<num_points; ++pt)
+	for(std::size_t pt = 0; pt < num_points; ++pt)
 	{
 		const t_real u = t_real(pt)/t_real(num_points);
 		const t_real phi = u * t_real(2)*pi<t_real>;
@@ -662,7 +691,7 @@ requires is_vec<t_vec>
 	t_cont<t_vec> normals;
 	t_cont<t_cont<t_vec>> uvs;
 
-	for(std::size_t face=0; face<num_points; ++face)
+	for(std::size_t face = 0; face < num_points; ++face)
 	{
 		std::size_t idx0 = face*2 + 0;	// top 1
 		std::size_t idx1 = face*2 + 1;	// bottom 1
