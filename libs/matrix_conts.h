@@ -58,7 +58,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	using t_size = decltype(t_vec{}.size());
 	t_vec vec = m::create<t_vec>(vec1.size());
 
-	for(t_size i=0; i<vec1.size(); ++i)
+	for(t_size i = 0; i < vec1.size(); ++i)
 		vec[i] = -vec1[i];
 
 	return vec;
@@ -81,7 +81,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 
 	t_vec vec = m::create<t_vec>(vec1.size());
 
-	for(t_size i=0; i<vec1.size(); ++i)
+	for(t_size i = 0; i < vec1.size(); ++i)
 		vec[i] = vec1[i] + vec2[i];
 
 	return vec;
@@ -109,7 +109,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	using t_size = decltype(t_vec{}.size());
 	t_vec vec = m::create<t_vec>(vec1.size());
 
-	for(t_size i=0; i<vec1.size(); ++i)
+	for(t_size i = 0; i < vec1.size(); ++i)
 		vec[i] = vec1[i] * d;
 
 	return vec;
@@ -154,7 +154,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	using t_size = decltype(t_vec{}.size());
 	t_vec vec = m::create<t_vec>(vec1.size());
 
-	for(t_size i=0; i<vec1.size(); ++i)
+	for(t_size i = 0; i < vec1.size(); ++i)
 		vec[i] = vec1[i] / d;
 
 	return vec;
@@ -320,8 +320,8 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 	using t_size = decltype(t_mat{}.size1());
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
 
-	for(t_size i=0; i<mat1.size1(); ++i)
-		for(t_size j=0; j<mat1.size2(); ++j)
+	for(t_size i = 0; i < mat1.size1(); ++i)
+		for(t_size j = 0; j < mat1.size2(); ++j)
 			mat(i,j) = -mat1(i,j);
 
 	return mat;
@@ -344,8 +344,8 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
 
-	for(t_size i=0; i<mat1.size1(); ++i)
-		for(t_size j=0; j<mat1.size2(); ++j)
+	for(t_size i = 0; i < mat1.size1(); ++i)
+		for(t_size j = 0; j < mat1.size2(); ++j)
 			mat(i,j) = mat1(i,j) + mat2(i,j);
 
 	return mat;
@@ -373,8 +373,8 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 	using t_size = decltype(t_mat{}.size1());
 	t_mat mat = m::create<t_mat>(mat1.size1(), mat1.size2());
 
-	for(t_size i=0; i<mat1.size1(); ++i)
-		for(t_size j=0; j<mat1.size2(); ++j)
+	for(t_size i = 0; i < mat1.size1(); ++i)
+		for(t_size j = 0; j < mat1.size2(); ++j)
 			mat(i,j) = mat1(i,j) * d;
 
 	return mat;
@@ -432,12 +432,12 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 
 	t_mat matRet = m::create<t_mat>(mat1.size1(), mat2.size2());
 
-	for(t_size row=0; row<matRet.size1(); ++row)
+	for(t_size row = 0; row < matRet.size1(); ++row)
 	{
-		for(t_size col=0; col<matRet.size2(); ++col)
+		for(t_size col = 0; col < matRet.size2(); ++col)
 		{
 			matRet(row, col) = 0;
-			for(t_size i=0; i<mat1.size2(); ++i)
+			for(t_size i = 0; i < mat1.size2(); ++i)
 				matRet(row, col) += mat1(row, i) * mat2(i, col);
 		}
 	}
@@ -486,11 +486,11 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 		for(t_size col = 0; col < COLS; ++col)
 		{
 			ostr << rounded_val(mat(row, col));
-			if(col < COLS-1)
+			if(col < COLS - 1)
 				ostr << COLSEP << " ";
 		}
 
-		if(row < ROWS-1)
+		if(row < ROWS - 1)
 			ostr << ROWSEP << " ";
 	}
 
@@ -796,7 +796,7 @@ public:
 
 	explicit vec(const T* elems, std::size_t SIZE) : vec{SIZE}
 	{
-		for(std::size_t i=0; i<SIZE; ++i)
+		for(std::size_t i = 0; i < SIZE; ++i)
 			this->operator[](i) = elems[i];
 	}
 
@@ -854,8 +854,8 @@ public:
 	explicit mat(const T* elems, std::size_t ROWS, std::size_t COLS)
 		: mat{ROWS, COLS}
 	{
-		for(std::size_t i=0; i<ROWS; ++i)
-			for(std::size_t j=0; j<COLS; ++j)
+		for(std::size_t i = 0; i < ROWS; ++i)
+			for(std::size_t j = 0; j < COLS; ++j)
 				this->operator()(i, j) = elems[i*COLS + j];
 	}
 
