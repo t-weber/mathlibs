@@ -1953,9 +1953,7 @@ requires is_mat<t_mat> && is_vec<t_vec>
 
 
 /**
- * matrix power
- * @see https://en.wikipedia.org/wiki/Invertible_matrix#In_relation_to_its_adjugate
- * @see https://en.wikipedia.org/wiki/Adjugate_matrix
+ * power of a matrix, M^n
  */
 template<class t_mat, class t_vec, class t_int = int>
 std::tuple<t_mat, bool> pow(const t_mat& _mat, t_int pow_val)
