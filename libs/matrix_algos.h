@@ -546,6 +546,18 @@ requires is_scalar<t_scalar>
 
 
 /**
+ * tests for zero complex number
+ */
+template<class t_cplx, class t_scalar = typename t_cplx::value_type>
+bool equals_0(const t_cplx& c, t_scalar eps = std::numeric_limits<t_scalar>::epsilon())
+requires is_scalar<t_scalar> && is_complex<t_cplx>
+{
+	return equals<t_scalar>(c.real(), t_scalar{0}, eps) &&
+		equals<t_scalar>(c.imag(), t_scalar{0}, eps);
+}
+
+
+/**
  * tests for zero vector
  */
 template<class t_vec>
