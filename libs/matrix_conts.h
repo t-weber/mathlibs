@@ -33,6 +33,17 @@
 
 // math operators
 namespace m_ops {
+
+// ----------------------------------------------------------------------------
+// forward declarations
+// ----------------------------------------------------------------------------
+template<class t_quat>
+std::ostream& operator<<(std::ostream& ostr, const t_quat& quat)
+requires m::is_basic_quat<t_quat>;
+// ----------------------------------------------------------------------------
+
+
+
 // ----------------------------------------------------------------------------
 // vector operators
 // ----------------------------------------------------------------------------
@@ -237,6 +248,30 @@ requires m::is_complex<t_val>
 		new_val.real(rounded_re);
 	if(std::abs(val.imag() - rounded_im) <= eps)
 		new_val.imag(rounded_im);
+
+	return new_val;
+}
+
+
+template<class t_val, class t_real = typename t_val::value_type>
+t_val rounded_val(const t_val& val,
+	t_real eps = std::sqrt(std::numeric_limits<t_real>::epsilon()))
+requires m::is_quat<t_val>
+{
+	t_real rounded_re = std::round(val.real());
+	t_real rounded_im1 = std::round(val.imag1());
+	t_real rounded_im2 = std::round(val.imag2());
+	t_real rounded_im3 = std::round(val.imag3());
+
+	t_val new_val = val;
+	if(std::abs(val.real() - rounded_re) <= eps)
+		new_val.real(rounded_re);
+	if(std::abs(val.imag1() - rounded_im1) <= eps)
+		new_val.imag1(rounded_im1);
+	if(std::abs(val.imag2() - rounded_im2) <= eps)
+		new_val.imag2(rounded_im2);
+	if(std::abs(val.imag3() - rounded_im3) <= eps)
+		new_val.imag3(rounded_im3);
 
 	return new_val;
 }

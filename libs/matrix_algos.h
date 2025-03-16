@@ -838,6 +838,30 @@ requires is_mat<t_mat>
 
 
 /**
+ * create matrix from initializer_list in column/row order
+ */
+template<class t_mat, class t_init =  std::initializer_list<typename t_mat::value_type>,
+	class t_size = decltype(t_mat{}.size1())>
+t_mat create(t_size rows, t_size cols, const t_init& lst)
+requires is_mat<t_mat>
+{
+	t_mat mat = zero<t_mat>(rows, cols);
+
+	auto iter = lst.begin();
+	for(t_size row_idx = 0; row_idx < rows; ++row_idx)
+	{
+		for(t_size col_idx = 0; col_idx < cols; ++col_idx)
+		{
+			mat(row_idx, col_idx) = *iter;
+			std::advance(iter, 1);
+		}
+	}
+
+	return mat;
+}
+
+
+/**
  * get a column vector from a matrix
  */
 template<class t_mat, class t_vec, typename t_size = decltype(t_mat{}.size1())>
