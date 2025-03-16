@@ -47,7 +47,7 @@ concept /*bool*/ is_basic_vec = requires(const T& a)
 template<class T>
 concept /*bool*/ is_dyn_vec = requires(const T& a)
 {
-	T(3); T{3};					// constructor with size
+	T(3); T{3};			// constructor with size
 };
 
 
@@ -57,11 +57,11 @@ concept /*bool*/ is_dyn_vec = requires(const T& a)
 template<class T>
 concept /*bool*/ is_vec = requires(const T& a)
 {
-	a + a;						// operator+
-	a - a;						// operator-
-	a[0] * a;					// operator*
-	a * a[0];
-	a / a[0];					// operator/
+	a + a;				// operator+
+	a - a;				// operator-
+	typename T::value_type{} * a;	// operator*
+	a * typename T::value_type{};
+	a / typename T::value_type{};	// operator/
 } && is_basic_vec<T>;
 
 
@@ -92,14 +92,14 @@ concept /*bool*/ is_basic_quat = requires(T a, typename T::value_type scalar)
  * requirements for a quaternion container with operators
  */
 template<class T>
-concept /*bool*/ is_quat = requires(T a, typename T::value_type scalar)
+concept /*bool*/ is_quat = requires(const T& a, typename T::value_type scalar)
 {
-	a + a;						// operator+
-	a - a;						// operator-
-	a * a;						// operator-
-	scalar * a;					// operator*
+	a + a;				// operator+
+	a - a;				// operator-
+	a * a;				// operator-
+	scalar * a;			// operator*
 	a * scalar;
-	a / scalar;					// operator/
+	a / scalar;			// operator/
 } && is_basic_quat<T>;
 
 
@@ -123,7 +123,7 @@ concept /*bool*/ is_basic_mat = requires(const T& a)
 template<class T>
 concept /*bool*/ is_dyn_mat = requires(const T& a)
 {
-	T(3,3);	T{3,3};					// constructor with sizes
+	T(3,3);	T{3,3};			// constructor with sizes
 };
 
 
@@ -133,11 +133,11 @@ concept /*bool*/ is_dyn_mat = requires(const T& a)
 template<class T>
 concept /*bool*/ is_mat = requires(const T& a)
 {
-	a + a;						// operator+
-	a - a;						// operator-
-	a(0,0) * a;					// operator*
-	a * a(0,0);
-	a / a(0,0);					// operator/
+	a + a;				// operator+
+	a - a;				// operator-
+	typename T::value_type{} * a;	// operator*
+	a * typename T::value_type{};
+	a / typename T::value_type{};	// operator/
 } && is_basic_mat<T>;
 
 

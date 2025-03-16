@@ -40,6 +40,14 @@ namespace m_ops {
 template<class t_quat>
 std::ostream& operator<<(std::ostream& ostr, const t_quat& quat)
 requires m::is_basic_quat<t_quat>;
+
+template<class t_quat>
+t_quat operator*(typename t_quat::value_type scalar, const t_quat& quat)
+requires m::is_basic_quat<t_quat>;
+
+template<class t_quat>
+t_quat operator/(const t_quat& quat, typename t_quat::value_type scalar)
+requires m::is_basic_quat<t_quat>;
 // ----------------------------------------------------------------------------
 
 
@@ -303,7 +311,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
  * operator >>
  */
 template<class t_vec>
-std::istream& operator>>(std::istream& istr, t_vec& vec)
+std::istream& operator>>(std::istream&& istr, t_vec& vec)
 requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec.clear();
@@ -312,7 +320,8 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	std::getline(istr, str);
 
 	std::vector<std::string> vecstr;
-	boost::split(vecstr, str, [](auto c)->bool { return c==COLSEP; }, boost::token_compress_on);
+	boost::split(vecstr, str, [](auto c) -> bool
+		{ return c == COLSEP; }, boost::token_compress_on);
 
 	for(auto& tok : vecstr)
 	{
@@ -774,6 +783,26 @@ requires m::is_basic_quat<t_quat>
 	return ostr;
 }
 
+
+/**
+ * operator >>
+ */
+template<class t_quat>
+std::istream& operator>>(std::istream&& istr, t_quat& quat)
+requires m::is_basic_quat<t_quat>
+{
+	using t_real = typename t_quat::value_type;
+
+	t_real re{}, im1{}, im2{}, im3{};
+	istr >> re >> im1 >> im2 >> im3;
+
+	quat.real(re);
+	quat.imag1(im1);
+	quat.imag2(im2);
+	quat.imag3(im3);
+
+	return istr;
+}
 // ----------------------------------------------------------------------------
 
 
@@ -945,7 +974,7 @@ public:
 	using value_type = T;
 	using container_type = t_cont<T, 4>;
 
-	quat(value_type r=0, value_type i1=0, value_type i2=0, value_type i3=0)
+	quat(value_type r = 0, value_type i1 = 0, value_type i2 = 0, value_type i3 = 0)
 		: m_data{{r, i1, i2, i3}} {}
 	~quat() = default;
 
@@ -991,8 +1020,8 @@ public:
 	friend quat operator*(const quat& quat, value_type d) { return m_ops::operator*(quat, d); }
 	friend quat operator/(const quat& quat, value_type d) { return m_ops::operator/(quat, d); }
 
-	template<class t_vec> requires is_vec<t_vec>
-	friend t_vec operator*(const quat& quat, const t_vec& vec) { return m_ops::operator*(quat, vec); }
+	//template<class t_vec> requires is_vec<t_vec>
+	//friend t_vec operator*(const quat& quat, const t_vec& vec) { return m_ops::operator*(quat, vec); }
 
 	quat& operator*=(const quat& quat2) { return m_ops::operator*=(*this, quat2); }
 	quat& operator+=(const quat& quat2) { return m_ops::operator+=(*this, quat2); }
