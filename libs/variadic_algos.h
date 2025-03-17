@@ -47,7 +47,7 @@ constexpr auto&& get_arg_i(t_arg1&& arg) noexcept
 template<std::size_t i, class t_arg1, class... t_args>
 constexpr auto&& get_arg_i(t_arg1&& arg, t_args&&... args) noexcept
 {
-	if constexpr(i==0)
+	if constexpr(i == 0)
 		return arg;
 	return get_arg_i<i-1>(args...);
 }
@@ -80,7 +80,7 @@ constexpr seq_cat(const t_seq<seq1...>&, const t_seq<seq2...>&) noexcept
  */
 template<template<std::size_t...> class t_seq = std::index_sequence,
 	std::size_t first, std::size_t ...seq_rest>
-constexpr std::size_t seq_first(const t_seq<first, seq_rest...>&) noexcept
+constexpr std::size_t seq_first_elem(const t_seq<first, seq_rest...>&) noexcept
 {
 	return first;
 }
@@ -156,7 +156,7 @@ constexpr void set_zero(t_cont& cont) noexcept
 	using t_size = decltype(cont.size());
 	using t_elem = std::decay_t<decltype(cont[0])>;
 
-	for(t_size i=0; i<cont.size(); ++i)
+	for(t_size i = 0; i < cont.size(); ++i)
 		cont[i] = t_elem{};
 }
 
@@ -180,10 +180,10 @@ constexpr std::size_t get_linear_index(
 	{
 		std::size_t idx = 0;
 
-		for(std::size_t i=0; i<rank-1; ++i)
+		for(std::size_t i = 0; i < rank - 1; ++i)
 		{
 			std::size_t size = 1;
-			for(std::size_t j=i+1; j<rank; ++j)
+			for(std::size_t j = i + 1; j < rank; ++j)
 				size *= sizes[j];
 			idx += dims[i]*size;
 		}
@@ -220,10 +220,10 @@ constexpr std::size_t get_linear_index(
 	{
 		std::size_t idx = 0;
 
-		for(std::size_t i=0; i<rank-1; ++i)
+		for(std::size_t i = 0; i < rank - 1; ++i)
 		{
 			std::size_t size = 1;
-			for(std::size_t j=i+1; j<rank; ++j)
+			for(std::size_t j = i + 1; j < rank; ++j)
 				size *= sizes[j];
 			idx += dims[i]*size;
 		}

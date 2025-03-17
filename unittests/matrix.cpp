@@ -7,10 +7,10 @@
  * References:
  *  * https://www.boost.org/doc/libs/1_76_0/libs/test/doc/html/index.html
  *
- * g++ -std=c++20 -I .. -o matrix1 matrix1.cpp
+ * g++ -std=c++20 -I .. -o matrix matrix.cpp
  */
 
-#define BOOST_TEST_MODULE test_matrix1
+#define BOOST_TEST_MODULE test_matrix
 
 #include <iostream>
 #include <tuple>
@@ -25,7 +25,7 @@ namespace ty = boost::typeindex;
 #include "libs/matrix_algos.h"
 
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_matrix1, t_scalar, decltype(std::tuple<float, double, long double>{}))
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_matrix, t_scalar, decltype(std::tuple<float, double, long double>{}))
 {
 	t_scalar eps = std::pow(std::numeric_limits<t_scalar>::epsilon(), 0.5);
 

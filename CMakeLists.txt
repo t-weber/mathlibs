@@ -110,13 +110,21 @@ install(FILES ${PROJECT_SOURCE_DIR}/FindMathlibs.cmake
 if(BUILD_UNIT_TESTS)
 	enable_testing()
 
-	add_executable(matrix1 unittests/matrix1.cpp)
-	target_link_libraries(matrix1 mathlibs)
-	add_test(matrix1 matrix1)
+	add_executable(utst_seq unittests/seq.cpp)
+	target_link_libraries(utst_seq mathlibs)
+	add_test(utst_seq utst_seq)
 
-	add_executable(rotation unittests/rotation.cpp)
-	target_link_libraries(rotation mathlibs)
-	add_test(rotation rotation)
+	add_executable(utst_tensor unittests/tensor.cpp)
+	target_link_libraries(utst_tensor mathlibs)
+	add_test(utst_tensor utst_tensor)
+
+	add_executable(utst_matrix unittests/matrix.cpp)
+	target_link_libraries(utst_matrix mathlibs)
+	add_test(utst_matrix utst_matrix)
+
+	add_executable(utst_rotation unittests/rotation.cpp)
+	target_link_libraries(utst_rotation mathlibs)
+	add_test(utst_rotation utst_rotation)
 endif()
 # -----------------------------------------------------------------------------
 
@@ -125,34 +133,31 @@ endif()
 # test programs
 # -----------------------------------------------------------------------------
 if(BUILD_TESTS)
-	add_executable(hash tests/hash.cpp)
-	target_link_libraries(hash mathlibs)
+	add_executable(tst_hash tests/hash.cpp)
+	target_link_libraries(tst_hash mathlibs)
 
-	add_executable(tensor tests/tensor.cpp)
-	target_link_libraries(tensor mathlibs)
+	add_executable(tst_matrix tests/matrix.cpp)
+	target_link_libraries(tst_matrix mathlibs)
 
-	add_executable(matrix tests/matrix.cpp)
-	target_link_libraries(matrix mathlibs)
+	add_executable(tst_vec tests/vec.cpp)
+	target_link_libraries(tst_vec mathlibs)
 
-	add_executable(vec tests/vec.cpp)
-	target_link_libraries(vec mathlibs)
+	add_executable(tst_quat tests/quat.cpp)
+	target_link_libraries(tst_quat mathlibs)
 
-	add_executable(quat tests/quat.cpp)
-	target_link_libraries(quat mathlibs)
+	add_executable(tst_det tests/det.cpp)
+	target_link_libraries(tst_det mathlibs)
 
-	add_executable(det tests/det.cpp)
-	target_link_libraries(det mathlibs)
+	add_executable(tst_intersect tests/intersect.cpp)
+	target_link_libraries(tst_intersect mathlibs)
 
-	add_executable(intersect tests/intersect.cpp)
-	target_link_libraries(intersect mathlibs)
+	add_executable(tst_phys tests/phys.cpp)
+	target_link_libraries(tst_phys mathlibs)
 
-	add_executable(phys tests/phys.cpp)
-	target_link_libraries(phys mathlibs)
+	add_executable(tst_recursion tests/recursion.cpp)
+	target_link_libraries(tst_recursion mathlibs)
 
-	add_executable(recursion tests/recursion.cpp)
-	target_link_libraries(recursion mathlibs)
-
-	#add_executable(triag tests/triag.cpp)
-	#target_link_libraries(triag mathlibs)
+	#add_executable(tst_triag tests/triag.cpp)
+	#target_link_libraries(tst_triag mathlibs)
 endif()
 # -----------------------------------------------------------------------------

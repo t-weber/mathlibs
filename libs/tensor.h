@@ -55,10 +55,10 @@ protected:
 		{
 			t_size idx = 0;
 
-			for(t_size i=0; i<rank-1; ++i)
+			for(t_size i = 0; i < rank - 1; ++i)
 			{
 				t_size size = 1;
-				for(t_size j=i+1; j<rank; ++j)
+				for(t_size j = i + 1; j < rank; ++j)
 					size *= m_sizes[j];
 				idx += dims[i] * size;
 			}
@@ -80,7 +80,7 @@ protected:
 		t_cont_sizes arridx{};
 		arridx.resize(order(), 0);
 
-		for(int i=(int)order()-1; i>=0; --i)
+		for(int i = (int)order() - 1; i >= 0; --i)
 		{
 			arridx[i] = idx % m_sizes[i];
 			idx /= m_sizes[i];
@@ -303,49 +303,54 @@ public:
 		const t_size idx2_new = idx2 > idx1 ? idx2-1 : idx2;
 
 		t_cont_sizes sizes = GetSizes();
+		assert(sizes[idx1] == sizes[idx2]);      // cannot contract over indices of different dimension
 		sizes.erase(std::begin(sizes) + idx1);
 		sizes.erase(std::begin(sizes) + idx2_new);
 
 		// contracted tensor
-		TensorDyn<t_scalar, t_size, t_cont_templ> t{sizes};
-		assert(order()-2 == t.order());
+		TensorDyn<t_scalar, t_size, t_cont_templ> t_contr{sizes};
+		assert(order() - 2 == t_contr.order());  // wrong order of contracted tensor
 
 		// create an index array to the full tensor from indices to the contracted one
-		auto get_full_idx = [this, &t, idx1, idx2](const t_cont_sizes& arr_contr) -> t_cont_sizes
+		auto get_full_idx = [this, &t_contr, idx1, idx2](const t_cont_sizes& arr_contr) -> t_cont_sizes
 		{
 			t_cont_sizes arr{};
 			arr.resize(this->order());
 
-			for(t_size i=0; i<t.order(); ++i)
+			for(t_size i = 0; i < t_contr.order(); ++i)
 			{
 				// copy the index array, leaving gaps at idx1 and idx2
 				t_size idx_full = i;
-				if(idx_full >= idx1) ++idx_full;
-				if(idx_full >= idx2) ++idx_full;
-				arr[idx_full] = arr_contr[i];
+				if(idx_full >= idx1)
+					++idx_full;
+				if(idx_full >= idx2)
+					++idx_full;
+
+				if(idx_full < arr.size() && i < arr_contr.size())
+					arr[idx_full] = arr_contr[i];
 			}
 
 			return arr;
 		};
 
 		// iterate over the components of the contracted tensor
-		for(t_size idx_contr_lin=0; idx_contr_lin < t.size(); ++idx_contr_lin)
+		for(t_size idx_contr_lin = 0; idx_contr_lin < t_contr.size(); ++idx_contr_lin)
 		{
-			auto idx_contr_arr = t.get_array_index(idx_contr_lin);
+			auto idx_contr_arr = t_contr.get_array_index(idx_contr_lin);
 			auto idx_full_arr = get_full_idx(idx_contr_arr);
 
 			// iterate over the indices to contract
-			for(t_size idx=0; idx<size(idx1); ++idx)
+			for(t_size idx = 0; idx < size(idx1); ++idx)
 			{
 				// set the two indices to contract over equal
 				idx_full_arr[idx1] = idx_full_arr[idx2] = idx;
 
 				auto idx_full_lin = get_linear_index(idx_full_arr);
-				t[idx_contr_lin] += this->operator[](idx_full_lin);
+				t_contr[idx_contr_lin] += this->operator[](idx_full_lin);
 			}
 		}
 
-		return t;
+		return t_contr;
 	}
 
 
@@ -369,7 +374,7 @@ public:
 	{
 		TensorDyn<t_scalar, t_size, t_cont_templ> t2{t.GetSizes()};
 
-		for(t_size i=0; i<t.size(); ++i)
+		for(t_size i = 0; i < t.size(); ++i)
 			t2[i] = -t[i];
 
 		return t2;
@@ -386,7 +391,7 @@ public:
 		assert(t1.order() == t2.order());
 		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] + t2[i];
 
 		return tret;
@@ -403,7 +408,7 @@ public:
 		assert(t1.order() == t2.order());
 		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] - t2[i];
 
 		return tret;
@@ -419,7 +424,7 @@ public:
 	{
 		TensorDyn<t_scalar, t_size, t_cont_templ> tret{t1.GetSizes()};
 
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] * s;
 
 		return tret;
@@ -456,7 +461,7 @@ public:
 	{
 		assert(order() == t.order());
 
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) += t[i];
 
 		return *this;
@@ -471,7 +476,7 @@ public:
 	{
 		assert(order() == t.order());
 
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) -= t[i];
 
 		return *this;
@@ -484,7 +489,7 @@ public:
 	TensorDyn<t_scalar, t_size, t_cont_templ>&
 	operator*=(const t_scalar& s) noexcept
 	{
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) *= s;
 
 		return *this;
@@ -544,8 +549,8 @@ TensorDyn<t_scalar, t_size, t_cont_templ> tensor_prod(
 		const t_size N1 = t1.size();
 		const t_size N2 = t2.size();
 
-		for(t_size i=0; i<N1; ++i)
-			for(t_size j=0; j<N2; ++j)
+		for(t_size i = 0; i < N1; ++i)
+			for(t_size j = 0; j < N2; ++j)
 				res[i*N2 + j] = t1[i] * t2[j];
 	}
 

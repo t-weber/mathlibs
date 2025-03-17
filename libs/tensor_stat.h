@@ -311,7 +311,7 @@ public:
 
 		std::array<t_size, order> arridx{};
 
-		for(int i=(int)order-1; i>=0; --i)
+		for(int i = (int)order - 1; i >= 0; --i)
 		{
 			arridx[i] = idx % sizes[i];
 			idx /= sizes[i];
@@ -367,7 +367,7 @@ public:
 		// calculate the contracted tensor value
 		constexpr const t_size order = t_tensor::order();
 		constexpr const t_size order_contr = t_tensor_contr::order();
-		static_assert(order-2 == order_contr, "Wrong order of contracted tensor.");
+		static_assert(order - 2 == order_contr, "Wrong order of contracted tensor.");
 
 		// create an index array to the full tensor from indices to the contracted one
 		auto get_full_idx = [](const std::array<t_size, order_contr>& arr_contr)
@@ -375,12 +375,14 @@ public:
 		{
 			std::array<t_size, order> arr{};
 
-			for(t_size i=0; i<order_contr; ++i)
+			for(t_size i = 0; i < order_contr; ++i)
 			{
 				// copy the index array, leaving gaps at idx1 and idx2
 				t_size idx_full = i;
-				if(idx_full >= idx1) ++idx_full;
-				if(idx_full >= idx2) ++idx_full;
+				if(idx_full >= idx1)
+					++idx_full;
+				if(idx_full >= idx2)
+					++idx_full;
 				arr[idx_full] = arr_contr[i];
 			}
 
@@ -388,13 +390,13 @@ public:
 		};
 
 		// iterate over the components of the contracted tensor
-		for(t_size idx_contr_lin=0; idx_contr_lin < t.size(); ++idx_contr_lin)
+		for(t_size idx_contr_lin = 0; idx_contr_lin < t.size(); ++idx_contr_lin)
 		{
 			auto idx_contr_arr = t.get_array_index(idx_contr_lin);
 			auto idx_full_arr = get_full_idx(idx_contr_arr);
 
 			// iterate over the indices to contract
-			for(t_size idx=0; idx<t_tensor::size<idx1>(); ++idx)
+			for(t_size idx = 0; idx < t_tensor::size<idx1>(); ++idx)
 			{
 				// set the two indices to contract over equal
 				idx_full_arr[idx1] = idx_full_arr[idx2] = idx;
@@ -430,7 +432,7 @@ public:
 		Tensor<t_scalar, SIZES...> t2;
 
 #ifdef __TENSOR_USE_DYN_LOOPS__
-		for(t_size i=0; i<t.size(); ++i)
+		for(t_size i = 0; i < t.size(); ++i)
 			t2[i] = -t[i];
 #else
 		[&t, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
@@ -456,7 +458,7 @@ public:
 		Tensor<t_scalar, SIZES...> tret;
 
 #ifdef __TENSOR_USE_DYN_LOOPS__
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] + t2[i];
 #else
 		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
@@ -482,7 +484,7 @@ public:
 		Tensor<t_scalar, SIZES...> tret;
 
 #ifdef __TENSOR_USE_DYN_LOOPS__
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] - t2[i];
 #else
 		[&tret, &t1, &t2]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
@@ -508,7 +510,7 @@ public:
 		Tensor<t_scalar, SIZES...> tret;
 
 #ifdef __TENSOR_USE_DYN_LOOPS__
-		for(t_size i=0; i<t1.size(); ++i)
+		for(t_size i = 0; i < t1.size(); ++i)
 			tret[i] = t1[i] * s;
 #else
 		[&tret, &t1, &s]<t_size ...i>(const std::integer_sequence<t_size, i...>&) -> void
@@ -549,7 +551,7 @@ public:
 	 */
 	constexpr Tensor<t_scalar, SIZES...>& operator+=(const Tensor<t_scalar, SIZES...>& t) noexcept
 	{
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) += t[i];
 
 		return *this;
@@ -561,7 +563,7 @@ public:
 	 */
 	constexpr Tensor<t_scalar, SIZES...>& operator-=(const Tensor<t_scalar, SIZES...>& t) noexcept
 	{
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) -= t[i];
 
 		return *this;
@@ -573,7 +575,7 @@ public:
 	 */
 	constexpr Tensor<t_scalar, SIZES...>& operator*=(const t_scalar& s) noexcept
 	{
-		for(t_size i=0; i<size(); ++i)
+		for(t_size i = 0; i < size(); ++i)
 			operator[](i) *= s;
 
 		return *this;
@@ -629,18 +631,18 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
 
 	/*else if constexpr(rank_1 == 1 && rank_2 == 1)
 	{
-		for(t_size i=0; i<t1.template size<0>(); ++i)
-			for(t_size j=0; j<t2.template size<0>(); ++j)
-				res(i,j) = t1(i) * t2(j);
+		for(t_size i = 0; i < t1.template size<0>(); ++i)
+			for(t_size j = 0; j < t2.template size<0>(); ++j)
+				res(i, j) = t1(i) * t2(j);
 	}
 
 	else if constexpr(rank_1 == 2 && rank_2 == 2)
 	{
-		for(t_size i=0; i<t1.template size<0>(); ++i)
-			for(t_size j=0; j<t1.template size<1>(); ++j)
-				for(t_size k=0; k<t2.template size<0>(); ++k)
-					for(t_size l=0; l<t2.template size<1>(); ++l)
-						res(i,j,k,l) = t1(i,j) * t2(k,l);
+		for(t_size i = 0; i < t1.template size<0>(); ++i)
+			for(t_size j = 0; j < t1.template size<1>(); ++j)
+				for(t_size k = 0; k < t2.template size<0>(); ++k)
+					for(t_size l = 0; l < t2.template size<1>(); ++l)
+						res(i, j, k, l) = t1(i, j) * t2(k, l);
 	}*/
 
 	// general case
@@ -649,8 +651,8 @@ tensor_prod(const Tensor<t_scalar_1, SIZES_1...>& t1,
 		const t_size N1 = t1.size();
 		const t_size N2 = t2.size();
 
-		for(t_size i=0; i<N1; ++i)
-			for(t_size j=0; j<N2; ++j)
+		for(t_size i = 0; i < N1; ++i)
+			for(t_size j = 0; j < N2; ++j)
 				res[i*N2 + j] = t1[i] * t2[j];
 
 		// alternatively:
@@ -740,10 +742,10 @@ public:
 
 		t_mat_transp mat;
 
-		for(t_size i=0; i<SIZE1; ++i)
+		for(t_size i = 0; i < SIZE1; ++i)
 		{
 #ifdef __TENSOR_USE_DYN_LOOPS__
-			for(t_size j=0; j<SIZE2; ++j)
+			for(t_size j = 0; j < SIZE2; ++j)
 				mat(j, i) = (*this)(i, j);
 #else
 			[&mat, i, this]<t_size ...j>(const std::integer_sequence<t_size, j...>&) -> void
@@ -770,14 +772,14 @@ public:
 		using t_submat = Matrix<t_scalar, SIZE1-1, SIZE2-1>;
 		t_submat mat;
 
-		for(t_size row=0; row<SIZE1-1; ++row)
+		for(t_size row = 0; row < SIZE1 - 1; ++row)
 		{
-			t_size row_org = row>=ROW ? row+1 : row;
+			t_size row_org = row>=ROW ? row + 1 : row;
 
 #ifdef __TENSOR_USE_DYN_LOOPS__
-			for(t_size col=0; col<SIZE2-1; ++col)
+			for(t_size col = 0; col < SIZE2 - 1; ++col)
 			{
-				t_size col_org = col>=COL ? col+1 : col;
+				t_size col_org = col>=COL ? col + 1 : col;
 				mat(row, col) = (*this)(row_org, col_org);
 			}
 #else
@@ -867,7 +869,7 @@ public:
 				constexpr t_size row = elem_idx % SIZE2;
 				constexpr t_size col = elem_idx / SIZE2;
 
-				t_scalar sign = (((row+col) % 2) ? t_scalar(-1) : t_scalar(1));
+				t_scalar sign = (((row + col) % 2) ? t_scalar(-1) : t_scalar(1));
 				t_scalar subdet = this->submatrix<row, col>().determinant();
 				invmat(col, row) = sign * subdet;
 			}(), ...);
@@ -897,9 +899,9 @@ matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 
 	t_M M;
 
-	for(t_size i=0; i<SIZEI; ++i)
+	for(t_size i = 0; i < SIZEI; ++i)
 	{
-		for(t_size j=0; j<SIZEJ; ++j)
+		for(t_size j = 0; j < SIZEJ; ++j)
 		{
 			// ------------------
 			// inner loop over k
@@ -908,7 +910,7 @@ matrix_prod(const Matrix<t_scalar_1, SIZEI, SIZEK>& R,
 #ifdef __TENSOR_USE_DYN_LOOPS__
 			M(i, j) = t_scalar{0};
 
-			for(t_size k=0; k<SIZEK; ++k)
+			for(t_size k = 0; k < SIZEK; ++k)
 				M(i, j) += R(i, k) * S(k, j);
 #else
 			// using unrolled statically-sized loop
@@ -1001,7 +1003,7 @@ inner_prod(const Vector<t_scalar_1, SIZE>& v, const Vector<t_scalar_2, SIZE>& w)
 #ifdef __TENSOR_USE_DYN_LOOPS__
 	s = t_scalar{0};
 
-	for(t_size i=0; i<SIZE; ++i)
+	for(t_size i = 0; i < SIZE; ++i)
 		s += v[i] * w[i];
 #else
 	// using unrolled statically-sized loop
