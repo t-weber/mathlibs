@@ -312,7 +312,7 @@ template<class t_vec, template<class...> class t_cont=std::vector>
 t_cont<t_vec> intersect_line_polylines(
 	const t_vec& linePt1, const t_vec& linePt2,
 	const t_cont<t_vec>& poly, bool only_segment = false,
-	typename t_vec::value_type eps=std::numeric_limits<typename t_vec::value_type>::epsilon())
+	typename t_vec::value_type eps = std::numeric_limits<typename t_vec::value_type>::epsilon())
 requires m::is_vec<t_vec>
 {
 	t_cont<t_vec> inters;
@@ -351,7 +351,7 @@ requires m::is_vec<t_vec>
 {
 	t_cont<t_vec> inters;
 
-	for(std::size_t idx=0; idx<poly.size(); ++idx)
+	for(std::size_t idx = 0; idx < poly.size(); ++idx)
 	{
 		std::size_t idx2 = (idx+1) % poly.size();
 		const t_vec& pt1 = poly[idx];
@@ -549,7 +549,7 @@ std::optional<std::size_t> get_containing_triag(const std::vector<std::vector<t_
 	const t_vec& pt)
 requires m::is_vec<t_vec>
 {
-	for(std::size_t idx=0; idx<triags.size(); ++idx)
+	for(std::size_t idx = 0; idx < triags.size(); ++idx)
 	{
 		const auto& triag = triags[idx];
 		if(pt_inside_triag<t_vec>(triag[0], triag[1], triag[2], pt))
@@ -589,7 +589,7 @@ requires m::is_vec<t_vec>
 {
 	std::vector<std::size_t> indices;
 
-	for(std::size_t idx=0; idx<triags.size(); ++idx)
+	for(std::size_t idx = 0; idx < triags.size(); ++idx)
 	{
 		if(is_conflicting_triag<t_vec>(triags[idx], pt))
 			indices.push_back(idx);
@@ -659,8 +659,11 @@ requires m::is_vec<t_vec>
 	// sort by angle
 	t_vec mean = std::accumulate(verts.begin(), verts.end(), m::zero<t_vec>(2));
 	mean /= t_real(verts.size());
-	std::stable_sort(verts.begin(), verts.end(), [&mean](const t_vec& vec1, const t_vec& vec2)->bool
-	{ return line_angle<t_vec>(mean, vec1) < line_angle<t_vec>(mean, vec2); });
+	std::stable_sort(verts.begin(), verts.end(),
+		[&mean](const t_vec& vec1, const t_vec& vec2) -> bool
+	{
+		return line_angle<t_vec>(mean, vec1) < line_angle<t_vec>(mean, vec2);
+	});
 
 	return std::make_tuple(verts, mean);
 }
@@ -869,7 +872,7 @@ requires m::is_vec<t_vec>
 		vert_in_hull = &mean;
 	}
 
-	for(std::size_t hullvertidx1=0; hullvertidx1<hull.size(); ++hullvertidx1)
+	for(std::size_t hullvertidx1 = 0; hullvertidx1 < hull.size(); ++hullvertidx1)
 	{
 		std::size_t hullvertidx2 = hullvertidx1+1;
 		if(hullvertidx2 >= hull.size())
@@ -913,7 +916,7 @@ requires m::is_vec<t_vec>
 
 
 	// insert new vertex into hull
-	for(std::size_t vertidx=3; vertidx<verts.size(); ++vertidx)
+	for(std::size_t vertidx = 3; vertidx < verts.size(); ++vertidx)
 	{
 		const t_vec& newvert = verts[vertidx];
 
@@ -931,13 +934,13 @@ requires m::is_vec<t_vec>
 		if(hullvertidx1 > hullvertidx2 && iterLower.GetRound()==iterUpper.GetRound())
 			iterUpper.SetRound(iterLower.GetRound()+1);
 
-		for(; iterLower.GetRound()>=-2; --iterLower)
+		for(; iterLower.GetRound() >= -2; --iterLower)
 		{
 			if(side_of_line<t_vec>(*iterLower, newvert, *(iterLower-1)) >= 0.)
 				break;
 		}
 
-		for(; iterUpper.GetRound()<=2; ++iterUpper)
+		for(; iterUpper.GetRound() <= 2; ++iterUpper)
 		{
 			if(side_of_line<t_vec>(*iterUpper, newvert, *(iterUpper+1)) <= 0.)
 				break;
@@ -1033,7 +1036,7 @@ requires m::is_vec<t_vec>
 
 
 	// insert new vertex into hull
-	for(std::size_t vertidx=3; vertidx<verts.size(); ++vertidx)
+	for(std::size_t vertidx = 3; vertidx < verts.size(); ++vertidx)
 	{
 		const t_vec& newvert = verts[vertidx];
 		auto [already_in_hull, hullvertidx1, hullvertidx2] = is_in_hull(newvert);
@@ -1048,21 +1051,21 @@ requires m::is_vec<t_vec>
 		if(hullvertidx1 > hullvertidx2 && iterLower.GetRound()==iterUpper.GetRound())
 			iterUpper.SetRound(iterLower.GetRound()+1);
 
-		for(; iterLower.GetRound()>=-2; --iterLower)
+		for(; iterLower.GetRound() >= -2; --iterLower)
 		{
 			if(side_of_line<t_vec>(iterLower->vert, newvert, (iterLower-1)->vert) >= 0.)
 				break;
 		}
 
-		for(; iterUpper.GetRound()<=2; ++iterUpper)
+		for(; iterUpper.GetRound() <= 2; ++iterUpper)
 		{
 			if(side_of_line<t_vec>(iterUpper->vert, newvert, (iterUpper+1)->vert) <= 0.)
 				break;
 		}
 
 		auto iter = iterUpper;
-		if(std::distance(iterLower+1, iterUpper) > 0)
-			iter = circularverts.erase(iterLower+1, iterUpper);
+		if(std::distance(iterLower + 1, iterUpper) > 0)
+			iter = circularverts.erase(iterLower + 1, iterUpper);
 
 		t_node* newnode = new t_node(vert_in_hull, newvert);
 		node_mem.push_back(newnode);
@@ -1587,7 +1590,7 @@ requires m::is_vec<t_vec> && is_graph<t_graph>
 
 	auto get_vertex_idx = [&vertices, eps](const t_vec& vert) -> std::optional<std::size_t>
 	{
-		for(std::size_t idx=0; idx<vertices.size(); ++idx)
+		for(std::size_t idx = 0; idx < vertices.size(); ++idx)
 		{
 			const t_vec& vertex = vertices[idx];
 			if(m::equals<t_vec>(vert, vertex, eps))
@@ -1776,7 +1779,7 @@ requires m::is_vec<t_vec>
 		std::vector<t_real_qhull> _verts;
 		_verts.reserve(verts.size() * dim);
 		for(const t_vec& vert : verts)
-			for(int i=0; i<dim; ++i)
+			for(int i = 0; i < dim; ++i)
 				_verts.push_back(t_real_qhull{vert[i]});
 
 		qh::Qhull qh{"triag", dim, int(_verts.size()/dim), _verts.data(), only_hull ? "QJ" : "d v Qu" };
@@ -1800,7 +1803,7 @@ requires m::is_vec<t_vec>
 				qh::QhullPoint pt = iterFacet->voronoiVertex();
 
 				t_vec vec = m::create<t_vec>(dim);
-				for(int i=0; i<dim; ++i)
+				for(int i = 0; i < dim; ++i)
 					vec[i] = t_real{pt[i]};
 
 				voronoi.emplace_back(std::move(vec));
@@ -1815,7 +1818,7 @@ requires m::is_vec<t_vec>
 				qh::QhullPoint pt = (*iterVertex).point();
 
 				t_vec vec = m::create<t_vec>(dim);
-				for(int i=0; i<dim; ++i)
+				for(int i = 0; i < dim; ++i)
 					vec[i] = t_real{pt[i]};
 
 				thetriag.emplace_back(std::move(vec));
@@ -1833,7 +1836,7 @@ requires m::is_vec<t_vec>
 			neighbours.resize(triags.size());
 
 			std::size_t facetIdx = 0;
-			for(auto iterFacet=facets.begin(); iterFacet!=facets.end(); ++iterFacet)
+			for(auto iterFacet = facets.begin(); iterFacet != facets.end(); ++iterFacet)
 			{
 				if(iterFacet->isUpperDelaunay())
 					continue;
@@ -1875,7 +1878,7 @@ get_triag_sharing_edge(std::vector<std::vector<t_vec>>& triags,
 	const t_vec& vert1, const t_vec& vert2, std::size_t curtriagidx, t_real eps = 1e-5)
 requires m::is_vec<t_vec>
 {
-	for(std::size_t i=0; i<triags.size(); ++i)
+	for(std::size_t i = 0; i < triags.size(); ++i)
 	{
 		if(i == curtriagidx)
 			continue;
@@ -1972,7 +1975,7 @@ requires m::is_vec<t_vec>
 	std::vector<t_vec> curverts{{ verts[0], verts[1], verts[2] }};
 
 	// insert vertices iteratively
-	for(std::size_t newvertidx=3; newvertidx<verts.size(); ++newvertidx)
+	for(std::size_t newvertidx = 3; newvertidx < verts.size(); ++newvertidx)
 	{
 		const t_vec& newvert = verts[newvertidx];
 
@@ -2016,25 +2019,25 @@ requires m::is_vec<t_vec>
 				if(hullvertidx1 > hullvertidx2 && iterLower.GetRound()==iterUpper.GetRound())
 					iterUpper.SetRound(iterLower.GetRound()+1);
 
-				for(; iterLower.GetRound()>=-2; --iterLower)
+				for(; iterLower.GetRound() >= -2; --iterLower)
 				{
 					if(side_of_line<t_vec>(*iterLower, newvert, *(iterLower-1)) >= 0.)
 						break;
 				}
 
-				for(; iterUpper.GetRound()<=2; ++iterUpper)
+				for(; iterUpper.GetRound() <= 2; ++iterUpper)
 				{
 					if(side_of_line<t_vec>(*iterUpper, newvert, *(iterUpper+1)) <= 0.)
 						break;
 				}
 
-				for(auto iter=iterLower; iter<=iterUpper; ++iter)
+				for(auto iter = iterLower; iter <= iterUpper; ++iter)
 				{
 					visible.push_back(*iter);
 				}
 			}
 
-			for(std::size_t visidx=0; visidx<visible.size()-1; ++visidx)
+			for(std::size_t visidx = 0; visidx < visible.size()-1; ++visidx)
 			{
 				triags.emplace_back(std::vector<t_vec>{{ newvert, visible[visidx], visible[visidx+1] }});
 				flip_edge(triags, triags.size()-1, 0, eps);
@@ -2048,7 +2051,7 @@ requires m::is_vec<t_vec>
 	// find neighbouring triangles and voronoi vertices
 	neighbours.resize(triags.size());
 
-	for(std::size_t triagidx=0; triagidx<triags.size(); ++triagidx)
+	for(std::size_t triagidx = 0; triagidx < triags.size(); ++triagidx)
 	{
 		// sort vertices
 		auto& triag = triags[triagidx];
@@ -2123,7 +2126,7 @@ requires m::is_vec<t_vec>
 			// filter out non-visible part of hull
 			qh::QhullHyperplane plane = iterFacet->hyperplane();
 			t_vec normal = m::create<t_vec>(dim+1);
-			for(int i=0; i<dim+1; ++i)
+			for(int i = 0; i < dim + 1; ++i)
 				normal[i] = t_real{plane[i]};
 			// normal pointing upwards?
 			if(normal[2] > 0.)
@@ -2146,7 +2149,7 @@ requires m::is_vec<t_vec>
 				qh::QhullPoint pt = (*iterVertex).point();
 
 				t_vec vec = m::create<t_vec>(dim);
-				for(int i=0; i<dim; ++i)
+				for(int i = 0; i < dim; ++i)
 					vec[i] = t_real{pt[i]};
 
 				thetriag.emplace_back(std::move(vec));
@@ -2206,7 +2209,7 @@ get_edges(const std::vector<t_vec>& verts, const std::vector<std::vector<t_vec>>
 {
 	auto get_vert_idx = [&verts, eps](const t_vec& vert) -> std::optional<std::size_t>
 	{
-		for(std::size_t vertidx=0; vertidx<verts.size(); ++vertidx)
+		for(std::size_t vertidx = 0; vertidx < verts.size(); ++vertidx)
 		{
 			const t_vec& vert2 = verts[vertidx];
 			if(m::equals<t_vec>(vert, vert2, eps))
@@ -2219,13 +2222,13 @@ get_edges(const std::vector<t_vec>& verts, const std::vector<std::vector<t_vec>>
 
 	std::vector<t_edge> edges;
 
-	for(std::size_t vertidx=0; vertidx<verts.size(); ++vertidx)
+	for(std::size_t vertidx = 0; vertidx < verts.size(); ++vertidx)
 	{
 		const t_vec& vert = verts[vertidx];
 
 		for(const auto& triag : triags)
 		{
-			for(std::size_t i=0; i<triag.size(); ++i)
+			for(std::size_t i = 0; i < triag.size(); ++i)
 			{
 				const t_vec& triagvert = triag[i];
 
@@ -2290,7 +2293,7 @@ bool has_loops(const std::vector<t_edge>& edges, std::size_t start_from, std::si
 		visitedverts.insert(vertto);
 
 		// get all edges from current vertex
-		for(auto iter=edges.begin(); iter!=edges.end(); ++iter)
+		for(auto iter = edges.begin(); iter != edges.end(); ++iter)
 		{
 			// forward direction
 			if(iter->first == vertto)
@@ -2374,10 +2377,10 @@ requires m::is_vec<t_vec>
 	for(const t_vec& vert : verts)
 		boost::add_vertex(vert, graph);
 
-	for(std::size_t i=0; i<verts.size(); ++i)
+	for(std::size_t i = 0; i < verts.size(); ++i)
 	{
 		const t_vec& vert1 = verts[i];
-		for(std::size_t j=i+1; j<verts.size(); ++j)
+		for(std::size_t j = i+1; j < verts.size(); ++j)
 		{
 			const t_vec& vert2 = verts[j];
 			t_real dist = m::norm(vert2-vert1);
@@ -2389,7 +2392,7 @@ requires m::is_vec<t_vec>
 	boost::kruskal_minimum_spanning_tree(graph, std::back_inserter(spanning_edges), boost::weight_map(weight));
 
 	std::vector<t_edge> span;
-	for(auto iter=spanning_edges.begin(); iter!=spanning_edges.end(); ++iter)
+	for(auto iter = spanning_edges.begin(); iter != spanning_edges.end(); ++iter)
 	{
 		std::size_t idx1 = boost::source(*iter, graph);
 		std::size_t idx2 = boost::target(*iter, graph);
@@ -2445,16 +2448,16 @@ requires m::is_vec<t_vec>
 
 
 	std::vector<t_vec> vertsDual;
-	for(std::size_t vertidx=0; vertidx<verts.size(); ++vertidx)
+	for(std::size_t vertidx = 0; vertidx < verts.size(); ++vertidx)
 	{
 		std::size_t vertidxNext = (vertidx+1) % verts.size();
 
 		const t_vec& vert1 = verts[vertidx];
 		const t_vec& vert2 = verts[vertidxNext];
 
-		if(t_vec dir=vert2-vert1; -dir[0] > 0.)
+		if(t_vec dir = vert2 - vert1; -dir[0] > 0.)
 		{
-			t_real slope = (vert2[1]-vert1[1]) / (vert2[0]-vert1[0]);
+			t_real slope = (vert2[1] - vert1[1]) / (vert2[0] - vert1[0]);
 			t_real offs = vert1[1] - vert1[0]*slope;
 
 			vertsDual.emplace_back(m::create<t_vec>({ -slope, offs }));
@@ -2468,7 +2471,7 @@ requires m::is_vec<t_vec>
 
 	std::vector<t_vec> intersverts;
 
-	for(std::size_t hullidx=0; hullidx<hullDual.size(); ++hullidx)
+	for(std::size_t hullidx = 0; hullidx < hullDual.size(); ++hullidx)
 	{
 		std::size_t hullidx2 = (hullidx + 1) % hullDual.size();
 
@@ -2526,9 +2529,9 @@ requires m::is_vec<t_vec>
 {
 	std::vector<t_vec> intersections;
 
-	for(std::size_t i=0; i<edges.size(); ++i)
+	for(std::size_t i = 0; i < edges.size(); ++i)
 	{
-		for(std::size_t j=i+1; j<edges.size(); ++j)
+		for(std::size_t j = i + 1; j < edges.size(); ++j)
 		{
 			if(auto [ok, inters] = intersect_lines<t_vec>(
 				edges[i].first, edges[i].second,
@@ -2580,9 +2583,9 @@ requires m::is_vec<t_vec>
 	using t_edge = std::pair<t_vec, t_vec>;
 	std::vector<t_edge> edges;
 
-	for(std::size_t vertidx=0; vertidx<verts.size(); ++vertidx)
+	for(std::size_t vertidx = 0; vertidx < verts.size(); ++vertidx)
 	{
-		std::size_t vertidxNext = (vertidx+1) % verts.size();
+		std::size_t vertidxNext = (vertidx + 1) % verts.size();
 		edges.emplace_back(std::make_pair(verts[vertidx], verts[vertidxNext]));
 	}
 
@@ -3024,9 +3027,9 @@ requires m::is_iterable<t_arr> && m::is_basic_vec<t_arr>
 	std::size_t end_idx = 0;
 	t_largernum val = -std::numeric_limits<t_largernum>::max();
 
-	for(std::size_t start=0; start<arr.size(); ++start)
+	for(std::size_t start = 0; start < arr.size(); ++start)
 	{
-		for(std::size_t end=start+1; end<=arr.size(); ++end)
+		for(std::size_t end = start + 1; end <= arr.size(); ++end)
 		{
 			t_largernum sum = std::accumulate(arr.begin()+start, arr.begin()+end, t_largernum{0});
 			if(sum > val)
@@ -3059,7 +3062,7 @@ requires m::is_iterable<t_arr> && m::is_basic_vec<t_arr>
 	t_largernum newval = 0;
 	t_largernum val = 0;
 
-	for(std::size_t idx=0; idx<arr.size(); ++idx)
+	for(std::size_t idx = 0; idx < arr.size(); ++idx)
 	{
 		if(newval < -arr[idx])
 		{
@@ -3101,9 +3104,9 @@ requires m::is_vec<t_vec>
 	const t_vec* pt2 = nullptr;
 	t_real dist = std::numeric_limits<t_real>::max();
 
-	for(std::size_t i=0; i<points.size(); ++i)
+	for(std::size_t i = 0; i < points.size(); ++i)
 	{
-		for(std::size_t j=i+1; j<points.size(); ++j)
+		for(std::size_t j = i + 1; j < points.size(); ++j)
 		{
 			t_real norm = m::norm<t_vec>(points[i] - points[j]);
 			if(norm < dist)
@@ -3200,7 +3203,7 @@ requires m::is_vec<t_vec>
 			auto [iterrange1, iterrange2] =
 				status.bounded_range(t_leaf{.vec=&vec1}, t_leaf{.vec=&vec2}, 1, 1);
 
-			for(auto iter=iterrange1; iter!=iterrange2; std::advance(iter,1))
+			for(auto iter = iterrange1; iter != iterrange2; std::advance(iter,1))
 			{
 				t_real newdist = m::norm<t_vec>(*iter->vec - *iter2->vec);
 				if(newdist < dist)
@@ -3229,6 +3232,71 @@ constexpr void _geo_vertex_assign(t_vertex& vert, const t_vec& vec, const std::i
 
 
 /**
+ * creates an r-tree out of a collection of points
+ */
+template<class t_real = double,
+	class t_vec = m::vec<t_real, std::vector>,
+	std::size_t dim = 3,
+	class t_vertex = geo::model::point<t_real, dim, geo::cs::cartesian>,
+	class t_rtree_leaf = std::tuple<t_vertex, std::size_t>,
+	class t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>,
+	template<class...> class t_cont = std::vector>
+requires m::is_vec<t_vec>
+t_rtree make_rtree(const t_cont<t_vec>& points)
+{
+	t_rtree rt(typename t_rtree::parameters_type(points.size()));
+
+	for(std::size_t ptidx = 0; ptidx < points.size(); ++ptidx)
+	{
+		t_vertex vert;
+		g::_geo_vertex_assign<t_vertex, t_vec>(vert, points[ptidx],
+			std::make_index_sequence<dim>());
+
+		rt.insert(std::make_tuple(vert, ptidx));
+	}
+
+	return rt;
+}
+
+
+/**
+ * find the n closest points in an r-tree
+ */
+template<class t_real = double,
+	class t_vec = m::vec<t_real, std::vector>,
+	std::size_t dim = 3, std::size_t num = 1,
+	class t_vertex = geo::model::point<t_real, dim, geo::cs::cartesian>,
+	class t_rtree_leaf = std::tuple<t_vertex, std::size_t>,
+	class t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>,
+	template<class...> class t_cont = std::vector>
+requires m::is_vec<t_vec>
+t_cont<std::size_t> closest_point_rtree(
+	const t_rtree& rt, const t_vec& query_point)
+{
+	t_cont<t_rtree_leaf> query_answers;
+	t_cont<std::size_t> found_points;
+	query_answers.reserve(num);
+	found_points.reserve(num);
+
+	t_vertex query_pt(1., 2., 3.);
+	_geo_vertex_assign<t_vertex, t_vec>(query_pt, query_point,
+		std::make_index_sequence<dim>());
+
+	rt.query(geoidx::nearest(query_pt, num),
+		std::back_inserter(query_answers));
+	for(const t_rtree_leaf& ans : query_answers)
+	{
+		//const t_vertex& pt = std::get<0>(ans);
+		std::size_t idx = std::get<1>(ans);
+
+		found_points.push_back(idx);
+	}
+
+	return found_points;
+}
+
+
+/**
  * closest pair (r-tree)
  */
 template<std::size_t dim, class t_vec, class t_real = typename t_vec::value_type>
@@ -3253,14 +3321,10 @@ requires m::is_vec<t_vec>
 	using t_rtree_leaf = std::tuple<t_vertex, std::size_t>;
 	using t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>;
 
-	t_rtree rt(typename t_rtree::parameters_type(points.size()));
-	for(std::size_t ptidx=0; ptidx<points.size(); ++ptidx)
-	{
-		t_vertex vert;
-		_geo_vertex_assign<t_vertex, t_vec>(vert, points[ptidx], std::make_index_sequence<dim>());
-
-		rt.insert(std::make_tuple(vert, ptidx));
-	}
+	// create r-tree
+	t_rtree rt = make_rtree<
+		t_real, t_vec, dim, t_vertex, t_rtree_leaf, t_rtree>(
+			points);
 
 
 	std::size_t idx1 = 0;
@@ -3269,20 +3333,22 @@ requires m::is_vec<t_vec>
 	t_vec query2 = m::create<t_vec>(dim);
 
 	t_real dist = m::norm<t_vec>(points[idx2] - points[idx1]);
-	for(std::size_t ptidx=1; ptidx<points.size(); ++ptidx)
+	for(std::size_t ptidx = 1; ptidx < points.size(); ++ptidx)
 	{
 		query1[0] = points[ptidx][0] - dist;
 		query2[0] = points[ptidx][0];
 
-		for(std::size_t i=1; i<dim; ++i)
+		for(std::size_t i = 1; i < dim; ++i)
 		{
 			query1[i] = points[ptidx][i] - dist;
 			query2[i] = points[ptidx][i] + dist;
 		}
 
 		t_vertex vert1, vert2;
-		_geo_vertex_assign<t_vertex, t_vec>(vert1, query1, std::make_index_sequence<dim>());
-		_geo_vertex_assign<t_vertex, t_vec>(vert2, query2, std::make_index_sequence<dim>());
+		_geo_vertex_assign<t_vertex, t_vec>(vert1, query1,
+			std::make_index_sequence<dim>());
+		_geo_vertex_assign<t_vertex, t_vec>(vert2, query2,
+			std::make_index_sequence<dim>());
 
 		t_box query_obj(vert1, vert2);
 
@@ -3328,14 +3394,14 @@ requires m::is_vec<t_vec>
 	t_vec query2 = m::create<t_vec>(dim);
 
 	t_real dist = m::norm<t_vec>(*pt2 - *pt1);
-	for(std::size_t ptidx=1; ptidx<points.size(); ++ptidx)
+	for(std::size_t ptidx = 1; ptidx < points.size(); ++ptidx)
 	{
 		const t_vec& curpt = *points[ptidx];
 
 		query1[0] = curpt[0] - dist;
 		query2[0] = curpt[0];
 
-		for(std::size_t i=1; i<dim; ++i)
+		for(std::size_t i = 1; i < dim; ++i)
 		{
 			query1[i] = curpt[i] - dist;
 			query2[i] = curpt[i] + dist;
@@ -3714,7 +3780,7 @@ std::ostream& operator<<(std::ostream& ostr,
 
 	auto print_indent = [&ostr, depth]() -> void
 	{
-		for(int i=0; i<depth; ++i)
+		for(int i = 0; i < depth; ++i)
 			ostr << "  ";
 	};
 
@@ -4464,7 +4530,7 @@ create_trapezoid_tree(const std::vector<t_line>& _lines,
 			std::vector<std::shared_ptr<Trapezoid<t_vec>>> mid_tops, mid_bottoms;
 			std::vector<std::shared_ptr<TrapezoidNodeTrapezoid<t_vec>>> mid_trap_nodes;
 
-			for(std::size_t isect_idx=1; isect_idx<intersecting_trapezoids.size()-1; ++isect_idx)
+			for(std::size_t isect_idx = 1; isect_idx < intersecting_trapezoids.size()-1; ++isect_idx)
 			{
 				auto mid_trap_node = intersecting_trapezoids[isect_idx];
 				auto mid_trap = mid_trap_node->GetTrapezoid();
@@ -4547,7 +4613,7 @@ create_trapezoid_tree(const std::vector<t_line>& _lines,
 
 
 			// mid trapezoids
-			for(std::size_t i=0; i<mid_trap_nodes.size(); ++i)
+			for(std::size_t i = 0; i < mid_trap_nodes.size(); ++i)
 			{
 				auto mid_top = mid_tops[i];
 				auto mid_bottom = mid_bottoms[i];
@@ -4648,7 +4714,7 @@ std::vector<std::vector<t_vec>> convex_split(
 	// find concave corner
 	std::optional<std::size_t> idx_concave;
 
-	for(std::size_t idx1=0; idx1<N; ++idx1)
+	for(std::size_t idx1 = 0; idx1 < N; ++idx1)
 	{
 		std::size_t idx2 = (idx1+1) % N;
 		std::size_t idx3 = (idx1+2) % N;
@@ -4744,12 +4810,12 @@ std::vector<std::vector<t_vec>> convex_split(
 		for(auto iter = iter2; true; ++iter)
 		{
 			poly1.push_back(*iter);
-			if(iter.GetIter() == (iter1+1).GetIter())
+			if(iter.GetIter() == (iter1 + 1).GetIter())
 				break;
 		}
 
 		// sub-polygon 2
-		for(auto iter = iter1+1; true; ++iter)
+		for(auto iter = iter1 + 1; true; ++iter)
 		{
 			poly2.push_back(*iter);
 			if(iter.GetIter() == (iter2).GetIter())
