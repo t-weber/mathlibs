@@ -3341,7 +3341,7 @@ template<class t_real = double,
 	class t_rtree_leaf = std::tuple<t_vertex, std::size_t>,
 	class t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>,
 	template<class...> class t_cont = std::vector>
-requires m::is_vec<t_vec>
+requires m::is_vec<t_vec> && m::is_mat<t_mat>
 t_cont<std::size_t> closest_point_rtree(
 	const t_rtree& rt, const t_vec& _query_point,
 	const t_mat& B)
