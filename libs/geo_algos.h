@@ -3260,6 +3260,39 @@ t_rtree make_rtree(const t_cont<t_vec>& points)
 
 
 /**
+ * creates an r-tree out of a collection of points
+ * the points are transformed using B
+ */
+template<class t_real = double,
+	class t_vec = m::vec<t_real, std::vector>,
+	class t_mat = m::mat<t_real, std::vector>,
+	std::size_t dim = 3,
+	class t_vertex = geo::model::point<t_real, dim, geo::cs::cartesian>,
+	class t_rtree_leaf = std::tuple<t_vertex, std::size_t>,
+	class t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>,
+	template<class...> class t_cont = std::vector>
+requires m::is_vec<t_vec> && m::is_mat<t_mat>
+t_rtree make_rtree(const t_cont<t_vec>& points, const t_mat& B)
+{
+	using namespace m_ops;
+
+	t_rtree rt(typename t_rtree::parameters_type(points.size()));
+
+	for(std::size_t ptidx = 0; ptidx < points.size(); ++ptidx)
+	{
+		t_vertex vert;
+		g::_geo_vertex_assign<t_vertex, t_vec>(vert,
+			B * points[ptidx],
+			std::make_index_sequence<dim>());
+
+		rt.insert(std::make_tuple(vert, ptidx));
+	}
+
+	return rt;
+}
+
+
+/**
  * find the n closest points in an r-tree
  */
 template<class t_real = double,
@@ -3278,7 +3311,50 @@ t_cont<std::size_t> closest_point_rtree(
 	query_answers.reserve(num);
 	found_points.reserve(num);
 
-	t_vertex query_pt(1., 2., 3.);
+	t_vertex query_pt;
+	_geo_vertex_assign<t_vertex, t_vec>(query_pt, query_point,
+		std::make_index_sequence<dim>());
+
+	rt.query(geoidx::nearest(query_pt, num),
+		std::back_inserter(query_answers));
+	for(const t_rtree_leaf& ans : query_answers)
+	{
+		//const t_vertex& pt = std::get<0>(ans);
+		std::size_t idx = std::get<1>(ans);
+
+		found_points.push_back(idx);
+	}
+
+	return found_points;
+}
+
+
+/**
+ * find the n closest points in an r-tree
+ * the query point is transformed using B
+ */
+template<class t_real = double,
+	class t_vec = m::vec<t_real, std::vector>,
+	class t_mat = m::mat<t_real, std::vector>,
+	std::size_t dim = 3, std::size_t num = 1,
+	class t_vertex = geo::model::point<t_real, dim, geo::cs::cartesian>,
+	class t_rtree_leaf = std::tuple<t_vertex, std::size_t>,
+	class t_rtree = geoidx::rtree<t_rtree_leaf, geoidx::dynamic_linear>,
+	template<class...> class t_cont = std::vector>
+requires m::is_vec<t_vec>
+t_cont<std::size_t> closest_point_rtree(
+	const t_rtree& rt, const t_vec& _query_point,
+	const t_mat& B)
+{
+	using namespace m_ops;
+	const t_vec query_point = B * _query_point;
+
+	t_cont<t_rtree_leaf> query_answers;
+	t_cont<std::size_t> found_points;
+	query_answers.reserve(num);
+	found_points.reserve(num);
+
+	t_vertex query_pt;
 	_geo_vertex_assign<t_vertex, t_vec>(query_pt, query_point,
 		std::make_index_sequence<dim>());
 
