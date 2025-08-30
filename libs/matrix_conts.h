@@ -299,8 +299,8 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 	for(t_size i = 0; i < N; ++i)
 	{
 		ostr << rounded_val(vec[i]);
-		if(i < N-1)
-			ostr << COLSEP << " ";
+		if(i + 1 < N)
+			ostr << " " << ROWSEP << " ";
 	}
 
 	return ostr;
@@ -311,7 +311,7 @@ requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
  * operator >>
  */
 template<class t_vec>
-std::istream& operator>>(std::istream&& istr, t_vec& vec)
+std::istream& operator>>(std::istream& istr, t_vec& vec)
 requires m::is_basic_vec<t_vec> && (!m::is_basic_mat<t_vec>)
 {
 	vec.clear();
@@ -530,12 +530,12 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 		for(t_size col = 0; col < COLS; ++col)
 		{
 			ostr << rounded_val(mat(row, col));
-			if(col < COLS - 1)
-				ostr << COLSEP << " ";
+			if(col + 1 < COLS)
+				ostr << " " << COLSEP << " ";
 		}
 
-		if(row < ROWS - 1)
-			ostr << ROWSEP << " ";
+		if(row + 1 < ROWS)
+			ostr << " " << ROWSEP << " ";
 	}
 
 	return ostr;
@@ -561,7 +561,7 @@ requires m::is_basic_mat<t_mat> //&& m::is_dyn_mat<t_mat>
 			ostr << std::setw(ostr.precision()*1.5) << std::right << mat(i,j);
 		ostr << ")";
 
-		if(i < ROWS - 1)
+		if(i + 1 < ROWS)
 			ostr << "\n";
 	}
 
@@ -788,7 +788,7 @@ requires m::is_basic_quat<t_quat>
  * operator >>
  */
 template<class t_quat>
-std::istream& operator>>(std::istream&& istr, t_quat& quat)
+std::istream& operator>>(std::istream& istr, t_quat& quat)
 requires m::is_basic_quat<t_quat>
 {
 	using t_real = typename t_quat::value_type;
@@ -1036,6 +1036,160 @@ private:
 // ----------------------------------------------------------------------------
 
 }
+
+
+
+#if __cplusplus >= 202302L
+#include <format>
+
+
+/**
+ * parse precision format specifier after the ":" in, e.g., "{:.6f}"
+ *
+ * for example formatters, see: https://github.com/llvm/llvm-project/blob/main/libcxx/include/__format/formatter_tuple.h
+ */
+template<class t_context, class t_iter = typename t_context::iterator, class t_char = char>
+constexpr std::tuple<t_iter, std::string_view, bool> fmt_parse_prec(t_context& context)
+{
+	std::string_view prec;
+	bool ok = false;
+	t_iter iter = context.begin();
+
+	if(iter != context.end() && *iter == t_char('.'))
+	{
+		std::advance(iter, 1);
+		t_iter preciter = iter;
+
+		while(iter != context.end() && *iter >= t_char('0') && *iter <= t_char('9'))
+			std::advance(iter, 1);
+
+		if(iter != context.end() && *iter == t_char('f'))
+		{
+			prec = std::string_view(preciter, iter);
+			ok = true;
+			std::advance(iter, 1);
+		}
+	}
+
+	// ignore closing '}'
+	context.advance_to(context.end());
+	return std::make_tuple(iter, prec, ok);
+}
+
+
+/**
+ * formatter for vector
+ *
+ * for example formatters, see: https://github.com/llvm/llvm-project/blob/main/libcxx/include/__format/formatter_tuple.h
+ *
+ * note: can't use the following, because it conflicts with the standard array formatter:
+ */
+/*template<class t_vec, class t_char>
+requires m::is_basic_vec<t_vec> && requires(const t_vec& v)
+{
+	m_ops::operator+(v, v);
+	m_ops::operator*(v, v);
+	//m_ops::operator/(v, t_vec::value_type(2));
+}*/
+template<class t_real, class t_char>
+// partially specialise std::formatter
+struct std::formatter<m::vec<t_real>, t_char>
+{
+	using t_vec = m::vec<t_real>;
+
+	/**
+	 * print matrix
+	 */
+	template<class t_context, class t_iter = typename t_context::iterator>
+	t_iter format(const t_vec& v, t_context& context) const
+	{
+		unsigned int prec = std::stoul(m_prec);
+
+		using t_size = decltype(v.size());
+		for(t_size i = 0; i < v.size(); ++i)
+		{
+			std::format_to(context.out(), "{:.{}f}",
+				m_ops::rounded_val(v[i]), prec);
+			if(i + 1 < v.size())
+				std::format_to(context.out(), " {} ", ROWSEP);
+		}
+
+		return context.out();
+	}
+
+
+	/**
+	 * parse precision format specifier after the ":" in, e.g., "{:.6f}"
+	 */
+	template<class t_context, class t_iter = typename t_context::iterator>
+	constexpr t_iter parse(t_context& context)
+	{
+		auto [ iter, prec, ok ] = fmt_parse_prec<t_context, t_iter, t_char>(context);
+		if(ok)
+			m_prec = prec;
+		return iter;
+	}
+
+
+private:
+	std::string m_prec{ "6" };
+};
+
+
+/**
+ * formatter for matrix
+ *
+ * for example formatters, see: https://github.com/llvm/llvm-project/blob/main/libcxx/include/__format/formatter_tuple.h
+ */
+template<class t_mat, class t_char>
+requires m::is_basic_mat<t_mat>
+// partially specialise std::formatter
+struct std::formatter<t_mat, t_char>
+{
+	/**
+	 * print matrix
+	 */
+	template<class t_context, class t_iter = typename t_context::iterator>
+	t_iter format(const t_mat& M, t_context& context) const
+	{
+		unsigned int prec = std::stoul(m_prec);
+
+		using t_size = decltype(M.size1());
+		for(t_size i = 0; i < M.size1(); ++i)
+		{
+			for(t_size j = 0; j < M.size2(); ++j)
+			{
+				std::format_to(context.out(), "{:.{}f}",
+					m_ops::rounded_val(M(i, j)), prec);
+				if(j + 1 < M.size2())
+					std::format_to(context.out(), " {} ", COLSEP);
+			}
+
+			if(i + 1 < M.size1())
+				std::format_to(context.out(), " {} ", ROWSEP);
+		}
+
+		return context.out();
+	}
+
+
+	/**
+	 * parse precision format specifier after the ":" in, e.g., "{:.6f}"
+	 */
+	template<class t_context, class t_iter = typename t_context::iterator>
+	constexpr t_iter parse(t_context& context)
+	{
+		auto [ iter, prec, ok ] = fmt_parse_prec<t_context, t_iter, t_char>(context);
+		if(ok)
+			m_prec = prec;
+		return iter;
+	}
+
+
+private:
+	std::string m_prec{ "6" };
+};
+#endif
 
 
 #endif
